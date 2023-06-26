@@ -3115,14 +3115,15 @@ int ObStaticEngineCG::filter_sort_keys(
 int ObStaticEngineCG::generate_spec(ObLogExchange &op, ObPxRepartTransmitSpec &spec, const bool in_root_job)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --ObPxRepartTransmitSpec", K(op.get_dist_method()));
   if (OB_FAIL(generate_basic_transmit_spec(op, spec, in_root_job))) {
     LOG_WARN("failed to generate basic transmit spec", K(ret));
-  } else if (OB_ISNULL(op.get_calc_part_id_expr())) {
+  } /*else if (OB_ISNULL(op.get_calc_part_id_expr())) {
     ret = OB_INVALID_ARGUMENT;
     LOG_WARN("repart_transmit's calc_part_id_expr is null", K(ret));
   } else if (OB_FAIL(generate_calc_part_id_expr(*op.get_calc_part_id_expr(), nullptr, spec.calc_tablet_id_expr_))) {
     LOG_WARN("fail to generate calc part id expr", K(ret), KP(op.get_calc_part_id_expr()));
-  }
+  }*/
   // for pkey-hash, need add hash expr
   if (OB_SUCC(ret) && op.get_hash_dist_exprs().count() > 0) {
     if (OB_FAIL(generate_hash_func_exprs(op.get_hash_dist_exprs(),
@@ -4319,6 +4320,7 @@ int ObStaticEngineCG::generate_spec(ObLogJoin &op,
 int ObStaticEngineCG::generate_join_spec(ObLogJoin &op, ObJoinSpec &spec)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --generate_spec", K(op.get_join_distributed_method()), K(ob_dist_algo_str(op.get_join_distributed_method())));
   bool is_late_mat = (phy_plan_->get_is_late_materialized() || op.is_late_mat());
   phy_plan_->set_is_late_materialized(is_late_mat);
   // print log if possible
@@ -6912,6 +6914,8 @@ int ObStaticEngineCG::get_phy_op_type(ObLogicalOperator &log_op,
           type = PHY_DIRECT_TRANSMIT;
         } else if (OB_REPARTITION_NO_REPARTITION != op.get_repartition_type()
               && !op.is_slave_mapping()) {
+          type = PHY_PX_REPART_TRANSMIT;
+        } else if (ObPQDistributeMethod::PARTITION_RANDOM == op.get_dist_method()) {
           type = PHY_PX_REPART_TRANSMIT;
         } else if (ObPQDistributeMethod::LOCAL != op.get_dist_method()) {
           type = PHY_PX_DIST_TRANSMIT;

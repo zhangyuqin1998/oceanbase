@@ -491,6 +491,9 @@ int ObRepartSliceIdxCalc::setup_one_side_one_level_info()
 {
   int ret = OB_SUCCESS;
   CalcPartitionBaseInfo *calc_part_info = NULL;
+  if (NULL == calc_part_id_expr_) {
+    return ret;
+  }
   calc_part_info = reinterpret_cast<CalcPartitionBaseInfo *>(calc_part_id_expr_->extra_info_);
   CK(OB_NOT_NULL(calc_part_info));
   CK(px_repart_ch_map_.size() > 0);

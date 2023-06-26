@@ -1013,6 +1013,8 @@ int ObPXServerAddrUtil::set_dfo_accessed_location(ObExecContext &ctx,
           OB_ISNULL(dml_op) ? base_table_location_key : OB_INVALID_ID,
           dfo, base_order, table_loc, scan_op))) {
       LOG_WARN("failed to set sqc accessed location", K(ret));
+    } else {
+      LOG_WARN("my_debug_info", K(table_location_key), K(ref_table_id), K(*table_loc), K(scan_op->table_name_));
     }
   } // end for
   return ret;
@@ -1062,6 +1064,9 @@ int ObPXServerAddrUtil::set_sqcs_accessed_location(ObExecContext &ctx,
   }
 
   // 将一个表涉及到的所有partition按照server addr划分到对应的sqc中
+  LOG_WARN("my_debug_info", K(sqcs.count()));
+  LOG_WARN("my_debug_info", K(locations));
+  LOG_WARN("my_debug_info", K(temp_locations.count()), K(temp_locations));
   ARRAY_FOREACH_X(sqcs, sqc_idx, sqc_cnt, OB_SUCC(ret)) {
     ObPxSqcMeta *sqc_meta = sqcs.at(sqc_idx);
     if (OB_ISNULL(sqc_meta)) {
@@ -1076,6 +1081,7 @@ int ObPXServerAddrUtil::set_sqcs_accessed_location(ObExecContext &ctx,
       const common::ObAddr &sqc_server = sqc_meta->get_exec_addr();
       ARRAY_FOREACH_X(temp_locations, idx, cnt, OB_SUCC(ret)) {
         const common::ObAddr &server = temp_locations.at(idx)->server_;
+        LOG_WARN("my_debug_info", K(server), K(sqc_server), K(*(temp_locations.at(idx))));
         if (server == sqc_server) {
           if (OB_FAIL(ret)) {
           } else if (OB_FAIL(sqc_locations.push_back(temp_locations.at(idx)))) {
@@ -1094,6 +1100,7 @@ int ObPXServerAddrUtil::set_sqcs_accessed_location(ObExecContext &ctx,
           }
         }
       }
+      LOG_WARN("my_debug_info", K(sqc_locations), K(sqc_location_keys), K(sqc_meta->get_sqc_id()));
       if (OB_SUCC(ret) && location_start_pos < location_end_pos) {
         if (OB_FAIL(sqc_location_indexes.push_back(ObSqcTableLocationIndex(
             table_loc->get_table_location_key(),
@@ -3491,8 +3498,11 @@ int ObSlaveMapUtil::get_pkey_table_locations(int64_t table_location_key,
   DASTabletLocIArray &access_table_locations = sqc.get_access_table_locations_for_update();
   ObIArray<ObSqcTableLocationIndex> &location_indexes = sqc.get_access_table_location_indexes();
   int64_t cnt = location_indexes.count();
+  LOG_WARN("my_debug_info --error", K(access_table_locations));
+  LOG_WARN("my_debug_info --error", K(location_indexes));
   // from end to start is necessary!
   for (int i = cnt - 1; i >= 0 && OB_SUCC(ret); --i) {
+    LOG_WARN("my_debug_info", K(table_location_key), K(location_indexes.at(i).table_location_key_));
     if (table_location_key == location_indexes.at(i).table_location_key_) {
       int64_t start = location_indexes.at(i).location_start_pos_;
       int64_t end = location_indexes.at(i).location_end_pos_;
@@ -3504,6 +3514,7 @@ int ObSlaveMapUtil::get_pkey_table_locations(int64_t table_location_key,
       break;
     }
   }
+  LOG_WARN("my_debug_info", K(pkey_locations), K(sqc.get_sqc_id()));
   if (OB_SUCC(ret) && pkey_locations.empty()) {
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("unexpected locations", K(location_indexes), K(access_table_locations), K(table_location_key), K(ret));

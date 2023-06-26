@@ -8096,6 +8096,7 @@ int ObJoinOrder::generate_inner_nl_paths(const EqualSets &equal_sets,
   } else if (dist_method == 0) {
     /*do nothing*/
   } else {
+    LOG_WARN("my_debug_info", K(dist_method), K(left_paths.at(0)->get_sharding()->get_location_type()), K(right_path->get_sharding()->get_location_type()));
     // generate inner push down path
     LOG_TRACE("succeed to get distributed inner nested loop join method", K(dist_method));
     for (int64_t i = 0; OB_SUCC(ret) && i < left_paths.count(); i++) {
@@ -8103,6 +8104,7 @@ int ObJoinOrder::generate_inner_nl_paths(const EqualSets &equal_sets,
            OB_SUCC(ret) && j < DistAlgo::DIST_MAX_JOIN_METHOD; j = (j << 1)) {
         if (dist_method & j) {
           DistAlgo dist_algo = get_dist_algo(j);
+          LOG_WARN("my_debug_info", K(ob_dist_algo_str(dist_algo)));
           if ((DistAlgo::DIST_PARTITION_WISE != dist_algo ||
                (is_partition_wise_valid(*left_paths.at(i), *right_path) &&
                 !right_path->exchange_allocated_)) &&
@@ -8161,6 +8163,8 @@ int ObJoinOrder::generate_normal_nl_paths(const EqualSets &equal_sets,
   } else if (dist_method == 0) {
     /*do nothing*/
   } else {
+    LOG_WARN("my_debug_info", K(dist_method), K(left_paths.at(0)->get_sharding()->get_location_type()), K(right_path->get_sharding()->get_location_type()));
+    
     bool need_mat = CONNECT_BY_JOIN != path_info.join_type_ && (path_info.force_mat_ ||
                     (!path_info.force_no_mat_ && !left_tree->get_is_at_most_one_row()));
     bool need_no_mat = (path_info.force_no_mat_ || (!path_info.force_mat_ &&
@@ -8178,6 +8182,7 @@ int ObJoinOrder::generate_normal_nl_paths(const EqualSets &equal_sets,
         if ((dist_method & j) && (DistAlgo::DIST_PARTITION_WISE != dist_algo ||
              is_partition_wise_valid(*left_paths.at(i), *right_path))
              && is_repart_valid(*left_paths.at(i), *right_path, dist_algo, true /* is_nl */)) {
+          LOG_WARN("my_debug_info", K(ob_dist_algo_str(dist_algo)));
           bool right_need_exchange = (dist_algo == DIST_HASH_HASH ||
                                       dist_algo == DIST_NONE_BROADCAST ||
                                       dist_algo == DIST_NONE_PARTITION ||
@@ -10334,6 +10339,7 @@ int ObJoinOrder::get_valid_path_info_from_hint(const ObRelIds &table_set,
     const ObLogPlanHint &log_hint = get_plan()->get_log_plan_hint();
     const LogJoinHint *log_join_hint = log_hint.get_join_hint(table_set);
     if (NULL != log_join_hint && !log_join_hint->dist_method_hints_.empty()) {
+      LOG_WARN("my_debug_info --hint", K(log_join_hint->dist_methods_));
       path_info.distributed_methods_ &= log_join_hint->dist_methods_;
       if (log_join_hint->dist_methods_ & DIST_NONE_ALL) {
         path_info.distributed_methods_ = DIST_NONE_ALL;

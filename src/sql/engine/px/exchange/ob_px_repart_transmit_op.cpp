@@ -88,6 +88,7 @@ ObPxRepartTransmitOp::ObPxRepartTransmitOp(
 int ObPxRepartTransmitOp::inner_open()
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --ObPxRepartTransmitOp::inner_open");
   LOG_TRACE("Inner open px fifo transmit", "op_id", MY_SPEC.id_);
   if (OB_FAIL(ObPxTransmitOp::inner_open())) {
     LOG_WARN("initialize operator context failed", K(ret));
@@ -103,16 +104,17 @@ void ObPxRepartTransmitOp::destroy()
 int ObPxRepartTransmitOp::do_transmit()
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --ObPxRepartTransmitOp", K(MY_SPEC.dist_method_));
   ObPhysicalPlanCtx *phy_plan_ctx = NULL;
   ObPxRepartTransmitOpInput *trans_input = static_cast<ObPxRepartTransmitOpInput*>(input_);
 
   if (OB_ISNULL(phy_plan_ctx = GET_PHY_PLAN_CTX(ctx_)) || OB_ISNULL(trans_input)) {
     LOG_ERROR("fail to op ctx", "op_id", MY_SPEC.id_, "op_type", MY_SPEC.type_,
               KP(trans_input), K(ret));
-  } else if (!MY_SPEC.is_repart_exchange()) {
+  } /*else if (!MY_SPEC.is_repart_exchange()) {
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("expect repart repartition", K(ret));
-  } else if (OB_INVALID_ID == MY_SPEC.repartition_ref_table_id_) {
+  } */else if (OB_INVALID_ID == MY_SPEC.repartition_ref_table_id_) {
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("repartition table id should be set for repart transmit op", K(ret));
   } else {
