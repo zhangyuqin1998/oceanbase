@@ -36,6 +36,8 @@ int ObLogExchange::get_explain_name_internal(char *buf,
       ret = BUF_PRINTF("REMOTE");
     } else if (is_rescanable()) {
       //PX COORDINATOR, do nothing
+    } else if (dist_method_ == ObPQDistributeMethod::RANDOM_LOCAL) {
+      ret = BUF_PRINTF("LOCAL (RANDOM)");
     } else {
       ret = BUF_PRINTF("DISTR");
     }

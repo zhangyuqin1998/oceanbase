@@ -81,6 +81,7 @@
 #include "sql/engine/px/exchange/ob_px_ms_receive_op.h"
 #include "sql/engine/px/exchange/ob_px_dist_transmit_op.h"
 #include "sql/engine/px/exchange/ob_px_repart_transmit_op.h"
+#include "sql/engine/px/exchange/ob_px_local_transmit_op.h"
 #include "sql/engine/px/exchange/ob_px_reduce_transmit_op.h"
 #include "sql/engine/px/exchange/ob_px_fifo_coord_op.h"
 #include "sql/engine/px/exchange/ob_px_ordered_coord_op.h"
@@ -2971,6 +2972,15 @@ int ObStaticEngineCG::generate_spec(ObLogExchange &op, ObPxMSReceiveSpec &spec, 
     LOG_WARN("failed to append array no dup", K(ret));
   } else {
     spec.local_order_ = op.is_sort_local_order();
+  }
+  return ret;
+}
+
+int ObStaticEngineCG::generate_spec(ObLogExchange &op, ObPxLocalTransmitSpec &spec, const bool in_root_job)
+{
+  int ret = OB_SUCCESS;
+  if (OB_FAIL(generate_basic_transmit_spec(op, spec, in_root_job))) {
+    LOG_WARN("failed to generate basic receive spec", K(ret));
   }
   return ret;
 }
@@ -6915,8 +6925,8 @@ int ObStaticEngineCG::get_phy_op_type(ObLogicalOperator &log_op,
         } else if (OB_REPARTITION_NO_REPARTITION != op.get_repartition_type()
               && !op.is_slave_mapping()) {
           type = PHY_PX_REPART_TRANSMIT;
-        } else if (ObPQDistributeMethod::PARTITION_RANDOM == op.get_dist_method()) {
-          type = PHY_PX_REPART_TRANSMIT;
+        } else if (ObPQDistributeMethod::RANDOM_LOCAL == op.get_dist_method()) {
+          type = PHY_PX_LOCAL_TRANSMIT;
         } else if (ObPQDistributeMethod::LOCAL != op.get_dist_method()) {
           type = PHY_PX_DIST_TRANSMIT;
         } else if (op.get_plan()->get_optimizer_context().is_online_ddl() && ObPQDistributeMethod::PARTITION_RANGE == op.get_dist_method()) {

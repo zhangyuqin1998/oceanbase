@@ -36,6 +36,7 @@ namespace sql
 #define IS_PX_TRANSMIT(type) \
      ((type) == PHY_PX_DIST_TRANSMIT || \
       (type) == PHY_PX_REPART_TRANSMIT || \
+      (type) == PHY_PX_LOCAL_TRANSMIT || \
       (type) == PHY_PX_REDUCE_TRANSMIT)
 
 #define IS_PX_GI(type) \
@@ -60,6 +61,7 @@ namespace sql
      (type) == PHY_PX_DIST_TRANSMIT || \
      (type) == PHY_PX_REPART_TRANSMIT || \
      (type) == PHY_PX_REDUCE_TRANSMIT || \
+     (type) == PHY_PX_LOCAL_TRANSMIT || \
      (type) == PHY_DETERMINATE_TASK_TRANSMIT)
 
 #define IS_DIST_TRANSMIT(type) \
@@ -72,6 +74,7 @@ namespace sql
 #define IS_PX_TRANSMIT(type) \
      ((type) == PHY_PX_DIST_TRANSMIT || \
       (type) == PHY_PX_REPART_TRANSMIT || \
+      (type) == PHY_PX_LOCAL_TRANSMIT || \
       (type) == PHY_PX_REDUCE_TRANSMIT)
 
 #define IS_DML(type) \

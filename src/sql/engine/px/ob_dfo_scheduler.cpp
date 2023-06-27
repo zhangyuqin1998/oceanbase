@@ -1411,7 +1411,13 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
           // 当DFO中存在TSC或者pdml中的global index maintain op：
           // 1. 当存在TSC情况下，sqcs的location信息使用tsc表的location信息
           // 2. 当是pdml、dml+px情况下，sqcs的locations信息使用DML对应的表的locations
-          if (OB_FAIL(ObPXServerAddrUtil::alloc_by_data_distribution(
+          LOG_WARN("my_debug_info --parent has scan");
+          if (ObPQDistributeMethod::RANDOM_LOCAL == child.get_dist_method()) {
+            LOG_WARN("my_debug_info --alloc_by_reference_child_distribution");
+            if (OB_FAIL(ObPXServerAddrUtil::alloc_by_child_distribution(child, parent))) {
+              LOG_WARN("fail alloc addr by child distribution", K(parent), K(child), K(ret));
+            }
+          } else if (OB_FAIL(ObPXServerAddrUtil::alloc_by_data_distribution(
             coord_info_.pruning_table_location_, exec_ctx, parent))) {
             LOG_WARN("fail alloc addr by data distribution", K(parent), K(ret));
           }
@@ -1419,6 +1425,7 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
         } else if (parent.is_single()) {
           // parent 可能是一个 scalar group by，会被标记为 is_local，此时
           // 走 alloc_by_data_distribution，内部会分配一个 QC 本地线程来执行
+          LOG_WARN("my_debug_info --parent is single");
           if (OB_FAIL(ObPXServerAddrUtil::alloc_by_data_distribution(
             coord_info_.pruning_table_location_, exec_ctx, parent))) {
             LOG_WARN("fail alloc addr by data distribution", K(parent), K(ret));

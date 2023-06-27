@@ -347,7 +347,6 @@ struct ObPQDistributeMethod
     DEF(NONE,) \
     DEF(PARTITION,) \
     DEF(RANDOM,) \
-	  DEF(RANDOM_LOCAL,) \
     DEF(HASH,) \
     DEF(BROADCAST,) \
     \
@@ -365,7 +364,8 @@ struct ObPQDistributeMethod
     DEF(PARTITION_RANGE,)\
     DEF(HYBRID_HASH_BROADCAST,) /* aka PX SEND HYBRID HASH */ \
     DEF(HYBRID_HASH_RANDOM,) /* aka PX SEND HYBRID HASH */ \
-    DEF(LOCAL,) /* represents pull to local */
+    DEF(LOCAL,) /* represents pull to local */ \
+    DEF(RANDOM_LOCAL,)
 
 DECLARE_ENUM(Type, type, PQ_DIST_METHOD_DEF, static);
 

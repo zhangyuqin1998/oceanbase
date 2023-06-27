@@ -503,6 +503,13 @@ REGISTER_OPERATOR(ObLogExchange, PHY_PX_REPART_TRANSMIT, ObPxRepartTransmitSpec,
                   ObPxRepartTransmitOp, ObPxRepartTransmitOpInput, VECTORIZED_OP);
 
 class ObLogExchange;
+class ObPxLocalTransmitSpec;
+class ObPxLocalTransmitOp;
+class ObPxLocalTransmitOpInput;
+REGISTER_OPERATOR(ObLogExchange, PHY_PX_LOCAL_TRANSMIT, ObPxLocalTransmitSpec,
+                  ObPxLocalTransmitOp, ObPxLocalTransmitOpInput, VECTORIZED_OP);
+
+class ObLogExchange;
 class ObPxReduceTransmitSpec;
 class ObPxReduceTransmitOp;
 class ObPxReduceTransmitOpInput;

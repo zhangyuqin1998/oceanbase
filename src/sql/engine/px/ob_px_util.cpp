@@ -266,6 +266,7 @@ int ObPXServerAddrUtil::alloc_by_data_distribution_inner(
     ObDfo &dfo)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --alloc_by_data_distribution_inner");
   ObSEArray<const ObTableScanSpec *, 2> scan_ops;
   ObSEArray<const ObTableModifySpec *, 1> dml_ops;
   // INSERT, REPLACE算子
@@ -292,6 +293,7 @@ int ObPXServerAddrUtil::alloc_by_data_distribution_inner(
     /**
      * some dfo may not contain tsc and dml. for example, select 8 from union all select t1.c1 from t1.
      */
+    LOG_WARN("my_debug_info --0 == scan_ops.count()");
     if (OB_FAIL(alloc_by_local_distribution(ctx, dfo))) {
       LOG_WARN("alloc SQC on local failed", K(ret));
     }
@@ -300,6 +302,7 @@ int ObPXServerAddrUtil::alloc_by_data_distribution_inner(
     ObDASTableLoc *dml_full_loc = NULL;
     uint64_t table_location_key = OB_INVALID_INDEX;
     uint64_t ref_table_id = OB_INVALID_ID;
+    LOG_WARN("my_debug_info", K(scan_ops.count()));
     if (scan_ops.count() > 0) {
       scan_op = scan_ops.at(0);
       table_location_key = scan_op->get_table_loc_id();
@@ -347,6 +350,7 @@ int ObPXServerAddrUtil::alloc_by_data_distribution_inner(
       LOG_WARN("fail to get phy table location", K(ret));
     } else {
       const DASTabletLocList &locations = table_loc->get_tablet_locs();
+      LOG_WARN("my_debug_info", K(table_loc->loc_meta_->use_dist_das_), K(locations));
       if (locations.size() <= 0) {
         ret = OB_ERR_UNEXPECTED;
         LOG_WARN("the location array is empty", K(locations.size()), K(ret));
@@ -806,6 +810,7 @@ int ObPXServerAddrUtil::alloc_by_local_distribution(ObExecContext &exec_ctx,
 {
   int ret = OB_SUCCESS;
   ObPhysicalPlanCtx *plan_ctx = GET_PHY_PLAN_CTX(exec_ctx);
+  LOG_WARN("my_debug_info", K(GCTX.self_addr()));
   // generate dh map info
   if (OB_SUCC(ret)) {
     if (OB_FAIL(generate_dh_map_info(dfo))) {
@@ -2907,6 +2912,7 @@ int ObSlaveMapUtil::build_mn_channel(
       ObDtlChTotalInfo &transmit_ch_info = dfo_ch_total_infos->at(0);
       OZ(ObDfo::fill_channel_info_by_sqc(transmit_ch_info.transmit_exec_server_, child.get_sqcs()));
       OZ(ObDfo::fill_channel_info_by_sqc(transmit_ch_info.receive_exec_server_, parent.get_sqcs()));
+      LOG_WARN("my_debug_info", K(transmit_ch_info.transmit_exec_server_), K(transmit_ch_info.receive_exec_server_), K(parent.get_dfo_id()), K(child.get_dfo_id()));
       transmit_ch_info.channel_count_ = transmit_ch_info.transmit_exec_server_.total_task_cnt_
                                       * transmit_ch_info.receive_exec_server_.total_task_cnt_;
       transmit_ch_info.start_channel_id_ = ObDtlChannel::generate_id(transmit_ch_info.channel_count_)

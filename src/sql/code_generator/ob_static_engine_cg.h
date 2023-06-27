@@ -77,6 +77,7 @@ class ObPxFifoReceiveSpec;
 class ObPxMSReceiveSpec;
 class ObPxDistTransmitSpec;
 class ObPxDistTransmitOp;
+class ObPxLocalTransmitSpec;
 class ObPxRepartTransmitSpec;
 class ObPxReduceTransmitSpec;
 class ObPxCoordSpec;
@@ -361,6 +362,7 @@ private:
   int generate_spec(ObLogExchange &op, ObPxFifoReceiveSpec &spec, const bool in_root_job);
   int generate_spec(ObLogExchange &op, ObPxMSReceiveSpec &spec, const bool in_root_job);
   int generate_spec(ObLogExchange &op, ObPxDistTransmitSpec &spec, const bool in_root_job);
+  int generate_spec(ObLogExchange &op, ObPxLocalTransmitSpec &spec, const bool in_root_job);
   int generate_spec(ObLogExchange &op, ObPxRepartTransmitSpec &spec, const bool in_root_job);
   int generate_spec(ObLogExchange &op, ObPxReduceTransmitSpec &spec, const bool in_root_job);
   int generate_spec(ObLogExchange &op, ObPxFifoCoordSpec &spec, const bool in_root_job);

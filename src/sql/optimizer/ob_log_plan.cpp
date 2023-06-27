@@ -4484,24 +4484,24 @@ int ObLogPlan::compute_join_exchange_info(JoinPath &join_path,
           join_path.right_path_->is_access_path() &&
           (static_cast<const AccessPath *>(join_path.right_path_)->is_get_ ||
            static_cast<const AccessPath *>(join_path.right_path_)->use_das_)) {
-        left_exch_info.dist_method_ = ObPQDistributeMethod::PARTITION_RANDOM;
+        left_exch_info.dist_method_ = ObPQDistributeMethod::RANDOM_LOCAL;
         auto target_op = join_path.right_path_->log_op_;
         LOG_WARN("my_debug_info $$$$ match2 $$$$", K(*(target_op->get_strong_sharding())));
-        uint64_t ref_table_id;
-        uint64_t table_id;
-        ObString table_name;
-        get_repartition_table_info(*target_op, table_name, ref_table_id, table_id);
-        left_exch_info.slice_count_ = target_op->get_strong_sharding()->get_part_cnt();
-        LOG_WARN("my_debug_info", K(table_name), K(ref_table_id), K(table_id), K(left_exch_info.slice_count_));
-        compute_repartition_func_info(equal_sets,
-                                      left_keys,
-                                      right_keys,
-                                      *target_op->get_strong_sharding(),
-                                      get_optimizer_context().get_expr_factory(),
-                                      left_exch_info);
-        left_exch_info.repartition_ref_table_id_ = ref_table_id;
-        left_exch_info.repartition_table_id_ = table_id;
-        left_exch_info.repartition_table_name_ = table_name;
+        // uint64_t ref_table_id;
+        // uint64_t table_id;
+        // ObString table_name;
+        // get_repartition_table_info(*target_op, table_name, ref_table_id, table_id);
+        // left_exch_info.slice_count_ = target_op->get_strong_sharding()->get_part_cnt();
+        // LOG_WARN("my_debug_info", K(table_name), K(ref_table_id), K(table_id), K(left_exch_info.slice_count_));
+        // compute_repartition_func_info(equal_sets,
+        //                               left_keys,
+        //                               right_keys,
+        //                               *target_op->get_strong_sharding(),
+        //                               get_optimizer_context().get_expr_factory(),
+        //                               left_exch_info);
+        // left_exch_info.repartition_ref_table_id_ = ref_table_id;
+        // left_exch_info.repartition_table_id_ = table_id;
+        // left_exch_info.repartition_table_name_ = table_name;
         // if (OB_FAIL(ret)) {
         // /*do nothing*/
         // } else if (OB_FAIL(left_exch_info.init_calc_part_id_expr(get_optimizer_context()))) {
@@ -4664,24 +4664,24 @@ int ObLogPlan::compute_join_exchange_info(JoinPath &join_path,
         join_path.right_path_->is_access_path() &&
         (static_cast<const AccessPath *>(join_path.right_path_)->is_get_ ||
          static_cast<const AccessPath *>(join_path.right_path_)->use_das_)) {
-      left_exch_info.dist_method_ = ObPQDistributeMethod::PARTITION_RANDOM;
-      auto target_op = join_path.right_path_->log_op_;
-      LOG_WARN("my_debug_info $$$$ match1 $$$$", K(*(target_op->get_strong_sharding())));
-      uint64_t ref_table_id;
-      uint64_t table_id;
-      ObString table_name;
-      get_repartition_table_info(*target_op, table_name, ref_table_id, table_id);
-      left_exch_info.slice_count_ = target_op->get_strong_sharding()->get_part_cnt();
-      LOG_WARN("my_debug_info", K(table_name), K(ref_table_id), K(table_id), K(left_exch_info.slice_count_));
-      compute_repartition_func_info(equal_sets,
-                                    left_keys,
-                                    right_keys,
-                                    *target_op->get_strong_sharding(),
-                                    get_optimizer_context().get_expr_factory(),
-                                    left_exch_info);
-      left_exch_info.repartition_ref_table_id_ = ref_table_id;
-      left_exch_info.repartition_table_id_ = table_id;
-      left_exch_info.repartition_table_name_ = table_name;
+      left_exch_info.dist_method_ = ObPQDistributeMethod::RANDOM_LOCAL;
+      // auto target_op = join_path.right_path_->log_op_;
+      // LOG_WARN("my_debug_info $$$$ match1 $$$$", K(*(target_op->get_strong_sharding())));
+      // uint64_t ref_table_id;
+      // uint64_t table_id;
+      // ObString table_name;
+      // get_repartition_table_info(*target_op, table_name, ref_table_id, table_id);
+      // left_exch_info.slice_count_ = target_op->get_strong_sharding()->get_part_cnt();
+      // LOG_WARN("my_debug_info", K(table_name), K(ref_table_id), K(table_id), K(left_exch_info.slice_count_));
+      // compute_repartition_func_info(equal_sets,
+      //                               left_keys,
+      //                               right_keys,
+      //                               *target_op->get_strong_sharding(),
+      //                               get_optimizer_context().get_expr_factory(),
+      //                               left_exch_info);
+      // left_exch_info.repartition_ref_table_id_ = ref_table_id;
+      // left_exch_info.repartition_table_id_ = table_id;
+      // left_exch_info.repartition_table_name_ = table_name;
       // if (OB_FAIL(ret)) {
       //   /*do nothing*/
       // } else if (OB_FAIL(left_exch_info.init_calc_part_id_expr(get_optimizer_context()))) {
