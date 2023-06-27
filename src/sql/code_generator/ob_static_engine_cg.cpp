@@ -3128,12 +3128,12 @@ int ObStaticEngineCG::generate_spec(ObLogExchange &op, ObPxRepartTransmitSpec &s
   LOG_WARN("my_debug_info --ObPxRepartTransmitSpec", K(op.get_dist_method()));
   if (OB_FAIL(generate_basic_transmit_spec(op, spec, in_root_job))) {
     LOG_WARN("failed to generate basic transmit spec", K(ret));
-  } /*else if (OB_ISNULL(op.get_calc_part_id_expr())) {
+  } else if (OB_ISNULL(op.get_calc_part_id_expr())) {
     ret = OB_INVALID_ARGUMENT;
     LOG_WARN("repart_transmit's calc_part_id_expr is null", K(ret));
   } else if (OB_FAIL(generate_calc_part_id_expr(*op.get_calc_part_id_expr(), nullptr, spec.calc_tablet_id_expr_))) {
     LOG_WARN("fail to generate calc part id expr", K(ret), KP(op.get_calc_part_id_expr()));
-  }*/
+  }
   // for pkey-hash, need add hash expr
   if (OB_SUCC(ret) && op.get_hash_dist_exprs().count() > 0) {
     if (OB_FAIL(generate_hash_func_exprs(op.get_hash_dist_exprs(),
