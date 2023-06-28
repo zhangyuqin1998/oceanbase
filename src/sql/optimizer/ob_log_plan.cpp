@@ -4639,7 +4639,7 @@ int ObLogPlan::compute_join_exchange_info(JoinPath &join_path,
     } else {
       /*do nothing*/
     }
-  } else if (DistAlgo::DIST_NONE_ALL == join_path.join_dist_algo_) {
+  } else if (DistAlgo::DIST_ALL_NONE == join_path.join_dist_algo_) {
   } else { /*do nothing*/ }
 
   if (OB_SUCC(ret)) {
