@@ -713,6 +713,7 @@ int ObPXServerAddrUtil::alloc_by_random_distribution(ObExecContext &exec_ctx,
     const ObDfo &child, ObDfo &parent)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --alloc_by_random_distribution", K(parent.get_dfo_id()));
   ObArray<ObAddr> addrs;
   // use all locations involved in this sql for scheduling,
   // use sql-included server instead of tenant-owned server,
@@ -880,6 +881,31 @@ int ObPXServerAddrUtil::alloc_by_reference_child_distribution(
              && OB_FAIL(parent.get_child_dfo(1, reference_child))) {
     LOG_WARN("failed to get reference_child", K(ret));
   } else if (OB_FAIL(alloc_by_data_distribution(table_locations, exec_ctx, *reference_child))) {
+    LOG_WARN("failed to alloc by data", K(ret));
+  } else if (OB_FAIL(alloc_by_child_distribution(*reference_child, parent))) {
+    LOG_WARN("failed to alloc by child distribution", K(ret));
+  }
+  return ret;
+}
+
+int ObPXServerAddrUtil::alloc_by_reference_child_distribution(
+    const ObIArray<ObTableLocation> *table_locations,
+    ObExecContext &exec_ctx,
+    ObDfo &parent)
+{
+  int ret = OB_SUCCESS;
+  ObDfo *reference_child = nullptr;
+  bool found = false;
+  for (int64_t i = 0; i < parent.get_child_count() && !found; i++) {
+    OZ (parent.get_child_dfo(i, reference_child));
+    if (reference_child->get_dfo_id() == parent.get_local_shuffle_id()) {
+      found = true;
+    }
+  }
+  if (!found) {
+    ret = OB_ERR_UNEXPECTED;
+    LOG_WARN("failed to get reference_child", K(ret, K(parent.get_local_shuffle_id())));
+  } else if (alloc_by_data_distribution(table_locations, exec_ctx, *reference_child)) {
     LOG_WARN("failed to alloc by data", K(ret));
   } else if (OB_FAIL(alloc_by_child_distribution(*reference_child, parent))) {
     LOG_WARN("failed to alloc by child distribution", K(ret));

@@ -134,7 +134,11 @@ int ObDfoSchedulerBasic::build_data_mn_xchg_ch(ObExecContext &ctx, ObDfo &child,
     uint64_t tenant_id = -1;
     if (parent.get_sqcs_count() != child.get_sqcs_count()) {
       ret = OB_ERR_UNEXPECTED;
-      LOG_WARN("pwj must have some sqc count", K(ret), K(parent.get_sqcs_count()), K(child.get_sqcs_count())); 
+      LOG_WARN("pwj must have some sqc count", K(ret),
+                                               K(parent.get_sqcs_count()),
+                                               K(child.get_sqcs_count()),
+                                               K(parent.get_dfo_id()),
+                                               K(child.get_dfo_id())); 
     } else if (OB_FAIL(ObDfo::check_dfo_pair(parent, child, child_dfo_idx))) {
       LOG_WARN("failed to check dfo pair", K(ret));
     } else if (OB_FAIL(get_tenant_id(ctx, tenant_id))) {
@@ -321,6 +325,14 @@ int ObSerialDfoScheduler::init_all_dfo_channel(ObExecContext &ctx) const
       } else if (parent->is_root_dfo() && !parent->is_thread_inited() &&
           OB_FAIL(ObPXServerAddrUtil::alloc_by_local_distribution(ctx, *parent))) {
         LOG_WARN("fail to alloc local distribution", K(ret));
+      } else if (!parent->is_root_dfo() &&
+                 common::OB_INVALID_ID != parent->get_local_shuffle_id()) {
+        if (OB_FAIL(ObPXServerAddrUtil::alloc_by_reference_child_distribution(
+                coord_info_.pruning_table_location_,
+                ctx,
+                *parent))) {
+          LOG_WARN("fail alloc addr by reference child distribution", K(parent), K(child), K(ret));
+        }
       } else if (!parent->is_root_dfo() &&
                  ObPQDistributeMethod::PARTITION_HASH == child->get_dist_method()) {
         if (OB_FAIL(ObPXServerAddrUtil::alloc_by_reference_child_distribution(
@@ -1368,7 +1380,11 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
   // for scan dfo:  dop + ranges -> dop + svr -> (svr1, th_cnt1), (svr2, th_cnt2), ...
   // for other dfo: dop + child svr -> (svr1, th_cnt1), (svr2, th_cnt2), ...
   //
-  LOG_WARN("my_debug_info --schedule_pair", K(parent.get_dfo_id()), K(child.get_dfo_id()));
+  LOG_WARN("my_debug_info --schedule_pair", K(parent.get_dfo_id()),
+                                            K(child.get_dfo_id()),
+                                            K(parent.get_dist_method()),
+                                            K(child.get_dist_method()),
+                                            K(parent.get_local_shuffle_id()));
   if (OB_SUCC(ret)) {
     // 调度一定是成对调度的，任何一个 child 调度起来时，它的 parent 一定已经调度成功
     if (!child.is_scheduled() && child.has_child_dfo()) {
@@ -1422,17 +1438,22 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
         // sqc。
         //
         // 下面只实现了第一种、第二种情况，第三种需求不明确，列为 TODO
-        if (parent.has_scan_op() || parent.has_dml_op()) { // 参考 Partial Partition Wise Join
+        if (common::OB_INVALID_ID != parent.get_local_shuffle_id()) {
+          LOG_WARN("my_debug_info --has_local_shuffle", K(parent.get_dfo_id()), K(parent.get_local_shuffle_id()));
+          if (OB_FAIL(ObPXServerAddrUtil::alloc_by_reference_child_distribution(
+                  coord_info_.pruning_table_location_,
+                  exec_ctx,
+                  parent))) {
+            LOG_WARN("fail alloc addr by reference child distribution", K(parent), K(child), K(ret));
+          }
+          common::ObSArray<common::ObAddr> addrs;
+          parent.get_addrs(addrs);
+          LOG_WARN("my_debug_info", K(addrs), K(parent.get_dfo_id()), K(child.get_dfo_id()), K(parent.get_child_dfos().at(0)->get_dfo_id()));
+        } else if (parent.has_scan_op() || parent.has_dml_op()) { // 参考 Partial Partition Wise Join
           // 当DFO中存在TSC或者pdml中的global index maintain op：
           // 1. 当存在TSC情况下，sqcs的location信息使用tsc表的location信息
           // 2. 当是pdml、dml+px情况下，sqcs的locations信息使用DML对应的表的locations
-          LOG_WARN("my_debug_info --parent has scan");
-          if (ObPQDistributeMethod::RANDOM_LOCAL == child.get_dist_method()) {
-            if (OB_FAIL(ObPXServerAddrUtil::alloc_by_child_distribution(child, parent))) {
-              LOG_WARN("fail alloc addr by child distribution", K(parent), K(child), K(ret));
-            }
-            LOG_WARN("my_debug_info --alloc_by_child_distribution", K(child.get_sqcs_count()), K(parent.get_sqcs_count()));
-          } else if (OB_FAIL(ObPXServerAddrUtil::alloc_by_data_distribution(
+          if (OB_FAIL(ObPXServerAddrUtil::alloc_by_data_distribution(
             coord_info_.pruning_table_location_, exec_ctx, parent))) {
             LOG_WARN("fail alloc addr by data distribution", K(parent), K(ret));
           }

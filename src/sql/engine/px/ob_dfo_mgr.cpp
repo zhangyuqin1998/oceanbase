@@ -641,8 +641,12 @@ int ObDfoMgr::do_split(ObExecContext &exec_ctx,
                                               dfo->get_interrupt_id()))) {
           LOG_WARN("fail gen dfo int id", K(ret));
         } else {
+          if (ObPQDistributeMethod::RANDOM_LOCAL == transmit->dist_method_) {
+            parent_dfo->set_local_shuffle_id(dfo->get_dfo_id());
+          }
           dfo->set_qc_server_id(GCTX.server_id_);
           dfo->set_parent_dfo_id(parent_dfo->get_dfo_id());
+          LOG_WARN("my_debug_info", K(dfo->get_dfo_id()), K(dfo->get_dist_method()), K(parent_dfo->get_dfo_id()), K(parent_dfo->get_local_shuffle_id()));
           LOG_TRACE("cur dfo dop",
                     "dfo_id", dfo->get_dfo_id(),
                     "is_local", transmit->is_px_single(),

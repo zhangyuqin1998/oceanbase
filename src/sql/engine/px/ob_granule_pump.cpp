@@ -1137,37 +1137,44 @@ int ObNormalAffinitizeGranuleSplitter::split_granule(ObGranulePumpArgs &args,
     LOG_WARN("invalid scan ops and gi task array result", K(ret), K(scan_ops.count()),
         K(gi_task_array_result.count()));
   }
-  const common::ObIArray<DASTabletLocArray> &tablet_arrays = args.tablet_arrays_;
-  ARRAY_FOREACH_X(scan_ops, idx, cnt, OB_SUCC(ret)) {
-    const ObTableScanSpec *tsc = scan_ops.at(idx);
-    ObGITaskSet total_task_set;
-    uint64_t op_id = OB_INVALID_ID;
-    uint64_t scan_key_id = OB_INVALID_ID;
-    ObGITaskArray &taskset_array = gi_task_array_result.at(idx).taskset_array_;
-    if (OB_ISNULL(tsc) || OB_ISNULL(args.ctx_)) {
+  if (OB_SUCC(ret)) {
+    const common::ObIArray<DASTabletLocArray> &tablet_arrays = args.tablet_arrays_;
+    if (tablet_arrays.count() < scan_ops.count()) {
       ret = OB_ERR_UNEXPECTED;
-      LOG_WARN("get a null tsc ptr", K(ret));
-    } else if (FALSE_IT(op_id = tsc->get_id())) {
-    } else if (FALSE_IT(scan_key_id = tsc->get_scan_key_id())) {
-    } else if (OB_FAIL(gi_task_array_result.at(idx).taskset_array_.prepare_allocate(args.parallelism_))) {
-      LOG_WARN("failed to prepare allocate", K(ret));
-    } else if (OB_FAIL(split_gi_task(args,
-                                     tsc,
-                                     scan_key_id,
-                                     op_id,
-                                     tablet_arrays.at(idx),
-                                     partition_granule,
-                                     total_task_set,
-                                     random_type))) {
-      LOG_WARN("failed to init granule iter pump", K(ret));
-    } else if (OB_FAIL(split_tasks_affinity(*args.ctx_, total_task_set, args.parallelism_,
-        taskset_array))) {
-      LOG_WARN("failed to split task affinity", K(ret));
+      LOG_WARN("invalid scan ops and gi task array result", K(tablet_arrays.count()), K(scan_ops.count()));
     } else {
-      gi_task_array_result.at(idx).tsc_op_id_ = op_id;
+      ARRAY_FOREACH_X(scan_ops, idx, cnt, OB_SUCC(ret)) {
+        const ObTableScanSpec *tsc = scan_ops.at(idx);
+        ObGITaskSet total_task_set;
+        uint64_t op_id = OB_INVALID_ID;
+        uint64_t scan_key_id = OB_INVALID_ID;
+        ObGITaskArray &taskset_array = gi_task_array_result.at(idx).taskset_array_;
+        if (OB_ISNULL(tsc) || OB_ISNULL(args.ctx_)) {
+          ret = OB_ERR_UNEXPECTED;
+          LOG_WARN("get a null tsc ptr", K(ret));
+        } else if (FALSE_IT(op_id = tsc->get_id())) {
+        } else if (FALSE_IT(scan_key_id = tsc->get_scan_key_id())) {
+        } else if (OB_FAIL(gi_task_array_result.at(idx).taskset_array_.prepare_allocate(args.parallelism_))) {
+          LOG_WARN("failed to prepare allocate", K(ret));
+        } else if (OB_FAIL(split_gi_task(args,
+                                        tsc,
+                                        scan_key_id,
+                                        op_id,
+                                        tablet_arrays.at(idx),
+                                        partition_granule,
+                                        total_task_set,
+                                        random_type))) {
+          LOG_WARN("failed to init granule iter pump", K(ret));
+        } else if (OB_FAIL(split_tasks_affinity(*args.ctx_, total_task_set, args.parallelism_,
+            taskset_array))) {
+          LOG_WARN("failed to split task affinity", K(ret));
+        } else {
+          gi_task_array_result.at(idx).tsc_op_id_ = op_id;
+        }
+        LOG_TRACE("normal affinitize granule split a task_array",
+          K(op_id), K(tsc->get_loc_ref_table_id()), K(taskset_array), K(ret), K(scan_ops.count()));
+      }
     }
-    LOG_TRACE("normal affinitize granule split a task_array",
-      K(op_id), K(tsc->get_loc_ref_table_id()), K(taskset_array), K(ret), K(scan_ops.count()));
   }
   return ret;
 }
