@@ -4480,13 +4480,13 @@ int ObLogPlan::compute_join_exchange_info(JoinPath &join_path,
         right_exch_info.slave_mapping_type_ = sm_type;
       }
     } else /*no slave mapping*/{
-      if (JoinAlgo::NESTED_LOOP_JOIN == join_path.join_algo_ &&
-          join_path.right_path_->is_access_path() &&
-          (static_cast<const AccessPath *>(join_path.right_path_)->is_get_ ||
-           static_cast<const AccessPath *>(join_path.right_path_)->use_das_)) {
-        left_exch_info.dist_method_ = ObPQDistributeMethod::RANDOM_LOCAL;
-        auto target_op = join_path.right_path_->log_op_;
-        LOG_WARN("my_debug_info $$$$ match2 $$$$", K(*(target_op->get_strong_sharding())));
+      // if (JoinAlgo::NESTED_LOOP_JOIN == join_path.join_algo_ &&
+      //     join_path.right_path_->is_access_path() &&
+      //     (static_cast<const AccessPath *>(join_path.right_path_)->is_get_ ||
+      //      static_cast<const AccessPath *>(join_path.right_path_)->use_das_)) {
+      //   left_exch_info.dist_method_ = ObPQDistributeMethod::RANDOM_LOCAL;
+      //   auto target_op = join_path.right_path_->log_op_;
+      //   LOG_WARN("my_debug_info $$$$ match2 $$$$", K(*(target_op->get_strong_sharding())));
         // uint64_t ref_table_id;
         // uint64_t table_id;
         // ObString table_name;
@@ -4507,9 +4507,9 @@ int ObLogPlan::compute_join_exchange_info(JoinPath &join_path,
         // } else if (OB_FAIL(left_exch_info.init_calc_part_id_expr(get_optimizer_context()))) {
         //   LOG_WARN("failed to init calc part id expr", K(ret));
         // } else { /*do nothing*/ }
-      } else {
-        /*do nothing*/
-      }
+      // } else {
+      //   /*do nothing*/
+      // }
     }
   } else if (DistAlgo::DIST_PARTITION_NONE == join_path.join_dist_algo_) {
     ObPQDistributeMethod::Type unmatch_method = ObPQDistributeMethod::DROP;
