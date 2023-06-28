@@ -624,6 +624,7 @@ int ObDtlBasicChannel::process1(
               }
               if (!is_eof()) {
                 if (NULL != channel_loop_) {
+                  LOG_WARN("my_debug_info --receive eof", K(GCTX.self_addr()));
                   channel_loop_->inc_eof_cnt();
                 }
                 set_eof();

@@ -1418,7 +1418,44 @@ int ObHybridHashSliceIdCalcBase::check_if_popular_value(ObEvalCtx &eval_ctx, boo
   }
   return ret;
 }
-
+int ObLocalRandomSliceIdxCalc::destroy()
+{
+  int ret = OB_SUCCESS;
+  local_task_idxs_.reset();
+  return ret;
+}
+int ObLocalRandomSliceIdxCalc::init()
+{
+  int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info", K(task_channels_.size()));
+  for (int64_t i = 0; i < task_channels_.count(); i++) {
+    dtl::ObDtlChannel* chan = task_channels_.at(i);
+    LOG_WARN("my_debug_info", K(chan->get_peer()), K(GCTX.self_addr()));
+    if (chan->get_peer() == GCTX.self_addr()) {
+      local_task_idxs_.push_back(i);
+    }
+  }
+  if (OB_UNLIKELY(local_task_idxs_.empty())) {
+    LOG_WARN("no match local channels");
+    ret = OB_ERR_UNEXPECTED;
+  }
+  return ret;
+}
+int ObLocalRandomSliceIdxCalc::get_slice_idx(
+      const ObIArray<ObExpr*> &exprs, ObEvalCtx &eval_ctx, int64_t &slice_idx)
+{
+  int ret = OB_SUCCESS;
+  if (local_task_idxs_.empty()) {
+    LOG_WARN("local channel empty");
+    ret = OB_ERR_UNEXPECTED;
+  }
+  int64_t local_idx = idx_ % local_task_idxs_.size();
+  slice_idx = local_task_idxs_.at(local_idx);
+  idx_++;
+  UNUSED(exprs);
+  
+  return ret;
+}
 int ObHybridHashRandomSliceIdCalc::get_slice_idx(
       const ObIArray<ObExpr*> &exprs, ObEvalCtx &eval_ctx, int64_t &slice_idx)
 {

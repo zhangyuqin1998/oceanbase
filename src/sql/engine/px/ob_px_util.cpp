@@ -2975,6 +2975,41 @@ int ObSlaveMapUtil::build_mn_channel_per_sqcs(
   return ret;
 }
 
+int ObSlaveMapUtil::build_local_mn_channel_map(
+  ObPxChTotalInfos *dfo_ch_total_infos,
+  ObDfo &child,
+  ObDfo &parent,
+  uint64_t tenant_id)
+{
+  int ret = OB_SUCCESS;
+  int64_t child_dfo_idx = -1;
+  // ObPxPartChMapArray &map = child.get_part_ch_map();
+  LOG_DEBUG("build ppwj bcast slave map", K(parent.get_dfo_id()), K(parent.get_sqcs_count()),
+      K(parent.get_tasks()));
+  common::ObSEArray<ObPxSqcMeta *, 8> sqcs;
+  if (OB_FAIL(parent.get_sqcs(sqcs))) {
+    LOG_WARN("failed to get sqcs", K(ret));
+  } else if (sqcs.count() <= 0) {
+    ret = OB_ERR_UNEXPECTED;
+    LOG_WARN("the count of sqc is unexpected", K(ret), K(sqcs.count()));
+  } else if (OB_FAIL(ObDfo::check_dfo_pair(parent, child, child_dfo_idx))) {
+    LOG_WARN("failed to check dfo pair", K(ret));
+  } else if (OB_FAIL(build_mn_channel(dfo_ch_total_infos, child, parent, tenant_id))) {
+    LOG_WARN("failed to build mn channels", K(ret));
+  } else if (OB_ISNULL(dfo_ch_total_infos) || 1 != dfo_ch_total_infos->count()) {
+    ret = OB_ERR_UNEXPECTED;
+    LOG_WARN("unexpected status: receive ch info is error", K(ret), KP(dfo_ch_total_infos));
+  } /*else if (OB_FAIL(build_partition_map_by_sqcs(
+      sqcs, child,
+      dfo_ch_total_infos->at(0).receive_exec_server_.prefix_task_counts_, map))) {
+    LOG_WARN("failed to build channel map by sqc", K(ret));
+  } else if (map.count() <= 0) {
+    ret = OB_ERR_UNEXPECTED;
+    LOG_WARN("the size of channel map is unexpected", K(ret), K(map.count()));
+  }*/
+  return ret;
+}
+
 // 对应的Plan是
 // GI(Partition)
 //    Hash Join           Hash Join

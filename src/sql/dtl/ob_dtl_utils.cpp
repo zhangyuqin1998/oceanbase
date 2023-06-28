@@ -148,6 +148,7 @@ int ObDtlAsynSender::asyn_send()
               wait_channels.at(nth_ch) = ch;
               ++nth_ch;
               ++send_eof_cnt;
+              LOG_WARN("my_debug_info --send_eof", K(GCTX.self_addr()), K(ch->get_peer()));
               if (OB_FAIL(action(ch))) {
                 tmp_ret = ret;
                 ret = OB_SUCCESS;

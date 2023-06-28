@@ -128,6 +128,20 @@ int ObDfoSchedulerBasic::build_data_mn_xchg_ch(ObExecContext &ctx, ObDfo &child,
         ctx, child, parent, tenant_id))) {
       LOG_WARN("fail to build slave mapping group", K(ret));
     }
+  } else if (ObPQDistributeMethod::Type::RANDOM_LOCAL == child.get_dist_method()) {
+    int64_t child_dfo_idx = -1;
+    ObPxChTotalInfos *transmit_mn_ch_info = &child.get_dfo_ch_total_infos();
+    uint64_t tenant_id = -1;
+    if (parent.get_sqcs_count() != child.get_sqcs_count()) {
+      ret = OB_ERR_UNEXPECTED;
+      LOG_WARN("pwj must have some sqc count", K(ret)); 
+    } else if (OB_FAIL(ObDfo::check_dfo_pair(parent, child, child_dfo_idx))) {
+      LOG_WARN("failed to check dfo pair", K(ret));
+    } else if (OB_FAIL(get_tenant_id(ctx, tenant_id))) {
+    } else if (OB_FAIL(ObSlaveMapUtil::build_local_mn_channel_map(
+        transmit_mn_ch_info, child, parent, tenant_id))) {
+      LOG_WARN("failed to build local channel", K(ret));
+    }
   } else {
     // 其他普通场景下的channel创建
     int64_t child_dfo_idx = -1;

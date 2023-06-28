@@ -470,6 +470,10 @@ public:
                                 ObDfo &child,
                                 ObDfo &parent,
                                 const uint64_t tenant_id);
+  static int build_local_mn_channel_map(ObPxChTotalInfos *dfo_ch_total_infos,
+                                    ObDfo &child,
+                                    ObDfo &parent,
+                                    uint64_t tenant_id);
 private:
   // new channel map generate
   static int build_ppwj_ch_mn_map(ObExecContext &ctx, ObDfo &parent, ObDfo &child, uint64_t tenant_id);

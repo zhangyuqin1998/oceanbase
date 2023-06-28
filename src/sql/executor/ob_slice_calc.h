@@ -550,6 +550,23 @@ private:
   const HostIdxArray &host_idx_;
 };
 
+class ObLocalRandomSliceIdxCalc : public ObSliceIdxCalc
+{
+public:
+  ObLocalRandomSliceIdxCalc(common::ObIAllocator &alloc,
+                            const common::ObArray<dtl::ObDtlChannel*> &task_channels)
+      : ObSliceIdxCalc(alloc, ObNullDistributeMethod::NONE), idx_(0), task_channels_(task_channels), local_task_idxs_()
+  {}
+  int init();
+  int destroy();
+  virtual int get_slice_idx(
+      const ObIArray<ObExpr*> &exprs, ObEvalCtx &eval_ctx, int64_t &slice_idx) override;
+private:
+  uint64_t idx_;
+  const common::ObArray<dtl::ObDtlChannel*> &task_channels_;
+  common::ObArray<int64_t> local_task_idxs_; // 存放task_channels_中的索引
+};
+
 class ObRandomSliceIdCalc : public ObSliceIdxCalc
 {
 public:

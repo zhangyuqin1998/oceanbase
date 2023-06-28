@@ -42,17 +42,19 @@ int ObPxLocalTransmitOp::inner_open()
     LOG_WARN("initialize operator context failed", K(ret));
   }
   LOG_WARN("my_debug_info", K(ctx_.get_px_sqc_id()), K(task_channels_.count()), K(task_channels_));
-  common::ObArray<dtl::ObDtlChannel*> local_task_channels;
-  for (uint64_t i = 0; i < task_channels_.count(); i++) {
-    dtl::ObDtlChannel *chan = task_channels_.at(i);
-    LOG_WARN("my_debug_info", K(chan->get_peer()), K(GCTX.self_addr()));
-    if (chan->get_peer() == GCTX.self_addr()) {
-      local_task_channels.push_back(chan);
-    }
-  }
-  task_channels_ = local_task_channels;
-  LOG_WARN("my_debug_info", K(ctx_.get_px_sqc_id()), K(local_task_channels.count()), K(local_task_channels));
-  local_task_channels.reset();
+  // common::ObArray<dtl::ObDtlChannel*> local_task_channels;
+  // for (uint64_t i = 0; i < task_channels_.count(); i++) {
+  //   dtl::ObDtlChannel *chan = task_channels_.at(i);
+  //   LOG_WARN("my_debug_info", K(chan->get_peer()), K(GCTX.self_addr()));
+  //   if (chan->get_peer() != GCTX.self_addr()) {
+  //     LOG_WARN("my_debug_info --error");
+  //     ret = OB_ERR_UNEXPECTED;
+      // local_task_channels.push_back(chan);
+    // }
+  // }
+  // task_channels_ = local_task_channels;
+  // LOG_WARN("my_debug_info", K(ctx_.get_px_sqc_id()), K(local_task_channels.count()), K(local_task_channels));
+  // local_task_channels.reset();
   return ret;
 }
 
@@ -65,8 +67,10 @@ int ObPxLocalTransmitOp::do_transmit()
 {
   int ret = OB_SUCCESS;
   LOG_WARN("my_debug_info --ObPxLocalTransmitOp");
-  ObRandomSliceIdCalc slice_id_calc(ctx_.get_allocator(), task_channels_.count());
-  if (OB_FAIL(send_rows(slice_id_calc))) {
+  ObLocalRandomSliceIdxCalc local_random_slice_id_calc(ctx_.get_allocator(), task_channels_);
+  if (OB_FAIL(local_random_slice_id_calc.init())) {
+    LOG_WARN("failed to init repart slice calc", K(ret));
+  } else if (OB_FAIL(send_rows(local_random_slice_id_calc))) {
     LOG_WARN("local shuffle failed", K(ret));
   }
   return ret;
