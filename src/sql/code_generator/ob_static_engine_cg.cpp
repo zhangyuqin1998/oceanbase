@@ -3125,7 +3125,6 @@ int ObStaticEngineCG::filter_sort_keys(
 int ObStaticEngineCG::generate_spec(ObLogExchange &op, ObPxRepartTransmitSpec &spec, const bool in_root_job)
 {
   int ret = OB_SUCCESS;
-  LOG_WARN("my_debug_info --ObPxRepartTransmitSpec", K(op.get_dist_method()));
   if (OB_FAIL(generate_basic_transmit_spec(op, spec, in_root_job))) {
     LOG_WARN("failed to generate basic transmit spec", K(ret));
   } else if (OB_ISNULL(op.get_calc_part_id_expr())) {

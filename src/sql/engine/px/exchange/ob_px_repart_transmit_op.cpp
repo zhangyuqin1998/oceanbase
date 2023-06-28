@@ -88,7 +88,6 @@ ObPxRepartTransmitOp::ObPxRepartTransmitOp(
 int ObPxRepartTransmitOp::inner_open()
 {
   int ret = OB_SUCCESS;
-  LOG_WARN("my_debug_info --ObPxRepartTransmitOp::inner_open");
   LOG_TRACE("Inner open px fifo transmit", "op_id", MY_SPEC.id_);
   if (OB_FAIL(ObPxTransmitOp::inner_open())) {
     LOG_WARN("initialize operator context failed", K(ret));
@@ -104,7 +103,6 @@ void ObPxRepartTransmitOp::destroy()
 int ObPxRepartTransmitOp::do_transmit()
 {
   int ret = OB_SUCCESS;
-  LOG_WARN("my_debug_info --ObPxRepartTransmitOp", K(MY_SPEC.dist_method_));
   ObPhysicalPlanCtx *phy_plan_ctx = NULL;
   ObPxRepartTransmitOpInput *trans_input = static_cast<ObPxRepartTransmitOpInput*>(input_);
 

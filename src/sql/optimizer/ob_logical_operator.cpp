@@ -3823,6 +3823,7 @@ int ObLogicalOperator::px_pipe_blocking_post(ObPxPipeBlockingCtx &ctx)
         } else {
         }
         if (child_op_ctx->in_.is_exch() && !is_block_input(i)) {
+          LOG_WARN("my_debug_info --allocate_material");
           if (child_dfo_cnt > 1 && !is_consume_child_1by1()) {
             if (child->get_type() == LOG_DISTINCT
                 && static_cast<ObLogDistinct*>(child)->get_algo() ==  HASH_AGGREGATE

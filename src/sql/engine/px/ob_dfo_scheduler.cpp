@@ -134,7 +134,7 @@ int ObDfoSchedulerBasic::build_data_mn_xchg_ch(ObExecContext &ctx, ObDfo &child,
     uint64_t tenant_id = -1;
     if (parent.get_sqcs_count() != child.get_sqcs_count()) {
       ret = OB_ERR_UNEXPECTED;
-      LOG_WARN("pwj must have some sqc count", K(ret)); 
+      LOG_WARN("pwj must have some sqc count", K(ret), K(parent.get_sqcs_count()), K(child.get_sqcs_count())); 
     } else if (OB_FAIL(ObDfo::check_dfo_pair(parent, child, child_dfo_idx))) {
       LOG_WARN("failed to check dfo pair", K(ret));
     } else if (OB_FAIL(get_tenant_id(ctx, tenant_id))) {
@@ -1368,6 +1368,7 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
   // for scan dfo:  dop + ranges -> dop + svr -> (svr1, th_cnt1), (svr2, th_cnt2), ...
   // for other dfo: dop + child svr -> (svr1, th_cnt1), (svr2, th_cnt2), ...
   //
+  LOG_WARN("my_debug_info --schedule_pair", K(parent.get_dfo_id()), K(child.get_dfo_id()));
   if (OB_SUCC(ret)) {
     // 调度一定是成对调度的，任何一个 child 调度起来时，它的 parent 一定已经调度成功
     if (!child.is_scheduled() && child.has_child_dfo()) {
@@ -1427,10 +1428,10 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
           // 2. 当是pdml、dml+px情况下，sqcs的locations信息使用DML对应的表的locations
           LOG_WARN("my_debug_info --parent has scan");
           if (ObPQDistributeMethod::RANDOM_LOCAL == child.get_dist_method()) {
-            LOG_WARN("my_debug_info --alloc_by_reference_child_distribution");
             if (OB_FAIL(ObPXServerAddrUtil::alloc_by_child_distribution(child, parent))) {
               LOG_WARN("fail alloc addr by child distribution", K(parent), K(child), K(ret));
             }
+            LOG_WARN("my_debug_info --alloc_by_child_distribution", K(child.get_sqcs_count()), K(parent.get_sqcs_count()));
           } else if (OB_FAIL(ObPXServerAddrUtil::alloc_by_data_distribution(
             coord_info_.pruning_table_location_, exec_ctx, parent))) {
             LOG_WARN("fail alloc addr by data distribution", K(parent), K(ret));
@@ -1490,12 +1491,14 @@ int ObParallelDfoScheduler::schedule_pair(ObExecContext &exec_ctx,
     // because child can do some useful (e.g. scan) work while parent is scheduling
   if (OB_SUCC(ret)) {
     if (!child.is_scheduled()) {
+      LOG_WARN("my_debug_info schedule_child_dfo", K(child.get_dfo_id()));
       if (OB_FAIL(schedule_dfo(exec_ctx, child))) { // 发送 DFO 到各个 server
         LOG_WARN("fail schedule dfo", K(child), K(ret));
       }
     }
   }
   if (OB_SUCC(ret)) {
+    LOG_WARN("my_debug_info schedule_parent_dfo", K(parent.get_dfo_id()));
     if (!parent.is_scheduled()) {
       if (OB_FAIL(schedule_dfo(exec_ctx, parent))) { // 发送 DFO 到各个 server
         LOG_WARN("fail schedule dfo", K(parent), K(ret));

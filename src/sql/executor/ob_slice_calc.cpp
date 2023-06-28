@@ -1427,10 +1427,8 @@ int ObLocalRandomSliceIdxCalc::destroy()
 int ObLocalRandomSliceIdxCalc::init()
 {
   int ret = OB_SUCCESS;
-  LOG_WARN("my_debug_info", K(task_channels_.size()));
   for (int64_t i = 0; i < task_channels_.count(); i++) {
     dtl::ObDtlChannel* chan = task_channels_.at(i);
-    LOG_WARN("my_debug_info", K(chan->get_peer()), K(GCTX.self_addr()));
     if (chan->get_peer() == GCTX.self_addr()) {
       local_task_idxs_.push_back(i);
     }

@@ -722,6 +722,7 @@ int ObLogExchange::px_pipe_blocking_post(ObPxPipeBlockingCtx &ctx)
         LOG_WARN("unexpected status: the parent of exchange out is not exchange in", K(ret));
       } else if (child_op_ctx->in_.is_exch() &&
           (op_ctx->dfo_depth_ > 0 || exchange_in->is_merge_sort())) {
+        LOG_WARN("my_debug_info --allocate_material");
         if (child->get_type() == log_op_def::LOG_DISTINCT
             && static_cast<ObLogDistinct*>(child)->get_algo() ==  HASH_AGGREGATE
             && !static_cast<ObLogDistinct *>(child)->is_push_down()) {
