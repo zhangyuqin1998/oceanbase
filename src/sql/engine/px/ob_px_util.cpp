@@ -904,7 +904,7 @@ int ObPXServerAddrUtil::alloc_by_reference_child_distribution(
   }
   if (!found) {
     ret = OB_ERR_UNEXPECTED;
-    LOG_WARN("failed to get reference_child", K(ret, K(parent.get_local_shuffle_id())));
+    LOG_WARN("failed to get reference_child", K(ret), K(parent.get_local_shuffle_id())));
   } else if (alloc_by_data_distribution(table_locations, exec_ctx, *reference_child)) {
     LOG_WARN("failed to alloc by data", K(ret));
   } else if (OB_FAIL(alloc_by_child_distribution(*reference_child, parent))) {

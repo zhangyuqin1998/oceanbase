@@ -3030,6 +3030,9 @@ int ObLogicalOperator::alloc_md_post(AllocMDContext &ctx)
 int ObLogicalOperator::numbering_exchange_pre(NumberingExchangeCtx &ctx)
 {
   int ret = OB_SUCCESS;
+  if (LOG_SUBPLAN_FILTER == type_) {
+    LOG_WARN("my_debug_info", K(ob_dist_algo_str(static_cast<ObLogSubPlanFilter*>(this)->get_distributed_algo())));
+  }
   if (LOG_EXCHANGE == type_) {
     ObLogExchange *exchange_op = static_cast<ObLogExchange*>(this);
     if (exchange_op->is_px_consumer() && exchange_op->is_rescanable()) {

@@ -9102,6 +9102,7 @@ int ObLogPlan::create_subplan_filter_plan(ObLogicalOperator *&top,
   } else {
     dist_algo = DistAlgo::DIST_PULL_TO_LOCAL;
   }
+  LOG_WARN("my_debug_info", K(ob_dist_algo_str(dist_algo)));
   if (OB_SUCC(ret)) {
     ObExchangeInfo exch_info;
     if (DistAlgo::DIST_BASIC_METHOD == dist_algo ||
