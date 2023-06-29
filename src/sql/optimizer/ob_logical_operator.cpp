@@ -2940,6 +2940,9 @@ uint64_t ObLogicalOperator::hash(uint64_t seed) const
 int ObLogicalOperator::numbering_operator_pre(NumberingCtx &ctx)
 {
   int ret = OB_SUCCESS;
+  if (get_type() == LOG_SUBPLAN_FILTER) {
+    LOG_WARN("my_debug_info", K(ob_dist_algo_str(static_cast<ObLogSubPlanFilter*>(this)->get_distributed_algo())));
+  }
   op_id_ = ctx.op_id_++;
   plan_depth_ = ctx.plan_depth_++;
   if (LOG_COUNT == get_type()) {

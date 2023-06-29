@@ -4870,6 +4870,7 @@ int ObSelectResolver::resolve_table_column_ref(const ObQualifiedName &q_name, Ob
   //2. basic table column or generated table column
   //3. object (sequence)
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --trace");
   if (OB_FAIL(resolve_table_column_expr(q_name, real_ref_expr))) {
     LOG_WARN("resolve table column expr failed", K(ret), K(q_name), K(lbt()));
   } else if (column_need_check_group_by(q_name)) {
@@ -4879,6 +4880,7 @@ int ObSelectResolver::resolve_table_column_ref(const ObQualifiedName &q_name, Ob
       LOG_WARN("add unsettled column failed", K(ret));
     }
   }
+  LOG_WARN("my_debug_info", K(q_name));
   return ret;
 }
 

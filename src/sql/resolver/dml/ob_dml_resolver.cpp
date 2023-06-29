@@ -4110,13 +4110,15 @@ int ObDMLResolver::resolve_table_column_expr(const ObQualifiedName &q_name, ObRa
     const TableItem *table_item = NULL;
     if (OB_FAIL(column_namespace_checker_.check_table_column_namespace(q_name, table_item,
                                                                        get_stmt()->is_insert_all_stmt()))) {
-      LOG_WARN_IGNORE_COL_NOTFOUND(ret, "column don't found in table", K(ret), K(q_name));
+      LOG_WARN("my_debug_info --error column don't found in table --1", K(ret), K(q_name));
     } else if (table_item->is_joined_table()) {
       const JoinedTable &joined_table = static_cast<const JoinedTable&>(*table_item);
+      LOG_WARN("my_debug_info --error found in join table", K(ret), K(q_name));
       if (OB_FAIL(resolve_join_table_column_item(joined_table, q_name.col_name_, real_ref_expr))) {
         LOG_WARN("resolve join table column item failed", K(ret));
       }
     } else {
+      LOG_WARN("my_debug_info --error found in table", K(ret), K(q_name));
       ColumnItem *col_item = NULL;
       if (OB_FAIL(resolve_single_table_column_item(*table_item, q_name.col_name_, false, col_item))) {
         LOG_WARN("resolve single table column item failed", K(ret));

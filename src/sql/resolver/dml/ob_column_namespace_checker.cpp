@@ -88,6 +88,7 @@ int ObColumnNamespaceChecker::check_table_column_namespace(const ObQualifiedName
     } else {/*do nothing*/}
   } else {
     ObTableItemIterator table_item_iter(*this);
+    // LOG_WARN("my_debug_info --error loop start");
     while (OB_SUCC(ret) && (cur_table = table_item_iter.get_next_table_item()) != NULL) {
       if (OB_FAIL(find_column_in_table(*cur_table, q_name, table_item, need_check_unique))) {
         if (OB_ERR_BAD_FIELD_ERROR == ret) {
@@ -101,6 +102,7 @@ int ObColumnNamespaceChecker::check_table_column_namespace(const ObQualifiedName
       }
     }
     if (OB_SUCC(ret) && NULL == table_item) {
+      LOG_WARN("my_debug_info --error");
       ret = OB_ERR_BAD_FIELD_ERROR;
     }
     if (OB_SUCC(ret) && need_check_unique) {
@@ -466,6 +468,7 @@ int ObColumnNamespaceChecker::find_column_in_table(const TableItem &table_item,
                                                   bool &need_check_unique)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --error in loop", K(table_item));
   if (table_item.is_joined_table()) {
     const JoinedTable &joined_table = static_cast<const JoinedTable&>(table_item);
     ret = find_column_in_joined_table(joined_table, q_name, found_table, need_check_unique);

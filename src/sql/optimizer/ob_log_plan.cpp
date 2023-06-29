@@ -5865,12 +5865,21 @@ int ObLogPlan::candi_allocate_root_exchange()
         LOG_WARN("get unexpected null", K(ret));
       } else if (best_candidates.at(i).plan_tree_->get_phy_plan_type() == ObPhyPlanType::OB_PHY_PLAN_REMOTE) {
         exch_info.is_remote_ = true;
+        LOG_WARN("my_debug_info");
+        if (best_candidates.at(i).plan_tree_->get_type() == LOG_SUBPLAN_FILTER) {
+          LOG_WARN("my_debug_info", K(ob_dist_algo_str(static_cast<ObLogSubPlanFilter*>(best_candidates.at(i).plan_tree_)->get_distributed_algo())));
+        }
         if (OB_FAIL(allocate_exchange_as_top(best_candidates.at(i).plan_tree_, exch_info))) {
           LOG_WARN("failed to allocate exchange as top", K(ret));
         } else { /*do nothing*/ }
-      } else if (best_candidates.at(i).plan_tree_->is_sharding() &&
-                 OB_FAIL(allocate_exchange_as_top(best_candidates.at(i).plan_tree_, exch_info))) {
-        LOG_WARN("failed to allocate exchange as top", K(ret));
+      } else if (best_candidates.at(i).plan_tree_->is_sharding()) {
+        LOG_WARN("my_debug_info");
+        if (best_candidates.at(i).plan_tree_->get_type() == LOG_SUBPLAN_FILTER) {
+          LOG_WARN("my_debug_info", K(ob_dist_algo_str(static_cast<ObLogSubPlanFilter*>(best_candidates.at(i).plan_tree_)->get_distributed_algo())));
+        }
+        if(OB_FAIL(allocate_exchange_as_top(best_candidates.at(i).plan_tree_, exch_info))) {
+          LOG_WARN("failed to allocate exchange as top", K(ret));
+        }
       } else { /*do nothing*/ }
     }
     if (OB_SUCC(ret)) {
@@ -9046,6 +9055,7 @@ int ObLogPlan::create_subplan_filter_plan(ObLogicalOperator *&top,
                                           const bool is_update_set)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --trace");
   bool is_basic = false;
   bool is_remote = false;
   bool is_recursive_cte = false;
@@ -9105,9 +9115,33 @@ int ObLogPlan::create_subplan_filter_plan(ObLogicalOperator *&top,
   LOG_WARN("my_debug_info", K(ob_dist_algo_str(dist_algo)));
   if (OB_SUCC(ret)) {
     ObExchangeInfo exch_info;
-    if (DistAlgo::DIST_BASIC_METHOD == dist_algo ||
-        DistAlgo::DIST_PARTITION_WISE == dist_algo ||
-        DistAlgo::DIST_NONE_ALL == dist_algo) {
+    if (DistAlgo::DIST_NONE_ALL == dist_algo) {
+      exch_info.dist_method_ = ObPQDistributeMethod::RANDOM_LOCAL;
+      LOG_WARN("my_debug_info --before", K(get_op_name(top->get_type())));
+      if (OB_FAIL(exch_info.weak_sharding_.assign(top->get_weak_sharding()))) {
+        LOG_WARN("failed to assign weak sharding", K(ret));
+      } else {
+        exch_info.strong_sharding_ = top->get_strong_sharding();
+      }
+      if (OB_FAIL(allocate_exchange_as_top(top, exch_info))) {
+        LOG_WARN("failed to allocate exchange as top");
+      }
+      LOG_WARN("my_debug_info --mid", K(get_op_name(top->get_type())));
+      if (OB_FAIL(allocate_subplan_filter_as_top(top,
+                                                 subquery_ops,
+                                                 query_ref_exprs,
+                                                 params,
+                                                 onetime_exprs,
+                                                 initplan_idxs,
+                                                 onetime_idxs,
+                                                 filters,
+                                                 dist_algo,
+                                                 is_update_set))) {
+        LOG_WARN("failed to allocate subplan filter as top", K(ret));
+      } else { /*do nothing*/ }
+      LOG_WARN("my_debug_info --after", K(top->get_sharding()->get_location_type()));
+    } else if (DistAlgo::DIST_BASIC_METHOD == dist_algo ||
+        DistAlgo::DIST_PARTITION_WISE == dist_algo) {
       // is basic or is_partition_wise
       if (OB_FAIL(allocate_subplan_filter_as_top(top,
                                                  subquery_ops,
@@ -9564,6 +9598,7 @@ int ObLogPlan::allocate_subplan_filter_as_top(ObLogicalOperator *&top,
                                               const bool is_update_set)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --trace");
   ObLogSubPlanFilter *spf_node = NULL;
   if (OB_ISNULL(top)) {
     ret = OB_ERR_UNEXPECTED;
@@ -9577,6 +9612,9 @@ int ObLogPlan::allocate_subplan_filter_as_top(ObLogicalOperator *&top,
   } else if (OB_FAIL(spf_node->add_child(subquery_ops))) {
     LOG_WARN("failed to add child", K(ret));
   } else {
+    for (int i = 0; i < spf_node->get_num_of_child(); i++) {
+      LOG_WARN("my_debug_info", K(spf_node->get_child_list().at(i)->get_type()));
+    }
     spf_node->set_distributed_algo(dist_algo);
     spf_node->set_update_set(is_update_set);
     if (NULL != filters && OB_FAIL(append(spf_node->get_filter_exprs(), *filters))) {
@@ -11763,6 +11801,7 @@ int ObLogPlan::gen_das_table_location_info(ObLogTableScan *table_scan,
 int ObLogPlan::collect_table_location(ObLogicalOperator *op)
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --trace");
   bool is_stack_overflow = false;
   if (OB_ISNULL(op)) {
     ret = OB_ERR_UNEXPECTED;
