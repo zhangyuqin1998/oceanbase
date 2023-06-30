@@ -731,6 +731,7 @@ int ObParallelDfoScheduler::do_schedule_dfo(ObExecContext &exec_ctx, ObDfo &dfo)
   // 0. 分配 QC-SQC 通道信息
   ARRAY_FOREACH_X(sqcs, idx, cnt, OB_SUCC(ret)) {
     ObPxSqcMeta &sqc = *sqcs.at(idx);
+    LOG_WARN("my_debug_info --dop", K(dfo.get_dfo_id()), K(sqc.get_task_count()), K(sqc.get_max_task_count()), K(sqc.get_min_task_count()));
     ObDtlChannelInfo &qc_ci = sqc.get_qc_channel_info();
     ObDtlChannelInfo &sqc_ci = sqc.get_sqc_channel_info();
     const ObAddr &sqc_exec_addr = sqc.get_exec_addr();
@@ -1061,6 +1062,7 @@ int ObParallelDfoScheduler::schedule_dfo(ObExecContext &exec_ctx,
     ObDfo &dfo) const
 {
   int ret = OB_SUCCESS;
+  LOG_WARN("my_debug_info --dop", K(dfo.get_dop()), K(dfo.get_dfo_id()));
   int retry_times = 0;
   ObPhysicalPlanCtx *phy_plan_ctx = NULL;
   /* 异常处理：
@@ -1144,7 +1146,7 @@ int ObParallelDfoScheduler::dispatch_sqc(ObExecContext &exec_ctx,
 {
   int ret = OB_SUCCESS;
   bool fast_sqc = dfo.is_fast_dfo();
-
+  LOG_WARN("my_debug_info --dop", K(dfo.get_dop()), K(dfo.get_dfo_id()));
   const ObPhysicalPlan *phy_plan = NULL;
   ObPhysicalPlanCtx *phy_plan_ctx = NULL;
   ObSQLSessionInfo *session = NULL;
@@ -1245,6 +1247,7 @@ int ObParallelDfoScheduler::dispatch_sqc(ObExecContext &exec_ctx,
         pkt.sqc_id_ = sqc.get_sqc_id();
         pkt.rc_ = resp.rc_;
         pkt.task_count_ = resp.reserved_thread_count_;
+        LOG_WARN("my_debug_info --dop", K(sqc.get_dfo_id()), K(sqc.get_sqc_id()), K(resp.reserved_thread_count_));
         if (resp.reserved_thread_count_ < sqc.get_max_task_count()) {
           LOG_TRACE("SQC don`t have enough thread or thread auto scaling, Downgraded thread allocation",
               K(resp), K(sqc));

@@ -107,7 +107,7 @@ public:
   bool is_pq_broadcast_dist() const { return ObPQDistributeMethod::BROADCAST == dist_method_; }
   bool is_pq_pkey() const { return ObPQDistributeMethod::PARTITION == dist_method_; }
   bool is_pq_dist() const { return dist_method_ < ObPQDistributeMethod::LOCAL; }
-  bool is_pq_local() const { return dist_method_ == ObPQDistributeMethod::LOCAL || dist_method_ == ObPQDistributeMethod::RANDOM_LOCAL; }
+  bool is_pq_local() const { return dist_method_ == ObPQDistributeMethod::LOCAL; }
   bool is_pq_random() const { return dist_method_ == ObPQDistributeMethod::RANDOM; }
   bool is_pq_pkey_hash() const { return dist_method_ == ObPQDistributeMethod::PARTITION_HASH;  }
   bool is_pq_pkey_rand() const { return dist_method_ == ObPQDistributeMethod::PARTITION_RANDOM; }

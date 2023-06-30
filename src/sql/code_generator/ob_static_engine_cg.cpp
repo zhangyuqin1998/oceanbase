@@ -2785,6 +2785,7 @@ int ObStaticEngineCG::generate_basic_transmit_spec(
     spec.null_row_dist_method_ = op.get_null_row_dist_method();
     spec.set_px_single(op.is_px_single());
     spec.set_px_dop(op.get_parallel());
+    LOG_WARN("my_debug_info --dop", K(op.get_dist_method()), K(op.get_parallel()));
     spec.set_px_id(op.get_px_id());
     spec.set_dfo_id(op.get_dfo_id());
     spec.set_slave_mapping_type(op.get_slave_mapping_type());

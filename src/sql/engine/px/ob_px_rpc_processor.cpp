@@ -96,6 +96,7 @@ int ObInitSqcP::process()
       OB_FAIL(ObDetectManagerUtils::sqc_register_into_dm(sqc_handler, sqc_handler->get_sqc_init_arg().sqc_))) {
     LOG_WARN("[DM] sqc failed to register_into_dm");
   } else {
+    LOG_WARN("my_debug_info --dop", K(sqc_handler->get_sqc_init_arg().sqc_.get_dfo_id()), K(result_.reserved_thread_count_));
     /*do nothing*/
   }
 

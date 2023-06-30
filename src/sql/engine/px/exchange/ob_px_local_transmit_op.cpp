@@ -37,7 +37,8 @@ ObPxLocalTransmitOp::ObPxLocalTransmitOp(
 int ObPxLocalTransmitOp::inner_open()
 {
   int ret = OB_SUCCESS;
-  LOG_TRACE("Inner open px fifo transmit", "op_id", MY_SPEC.id_);
+  LOG_WARN("my_debug_info, Inner open px fifo transmit", "op_id", MY_SPEC.id_);
+  LOG_TRACE("Inner open px local transmit", "op_id", MY_SPEC.id_);
   if (OB_FAIL(ObPxTransmitOp::inner_open())) {
     LOG_WARN("initialize operator context failed", K(ret));
   }

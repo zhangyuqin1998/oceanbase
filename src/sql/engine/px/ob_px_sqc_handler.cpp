@@ -104,6 +104,7 @@ int ObPxSqcHandler::pre_acquire_px_worker(int64_t &reserved_thread_count)
   int64_t min_thread_count = sqc_init_args_->sqc_.get_min_task_count();
     // 提前在租户中预留线程数，用于 px worker 执行
   ObPxSubAdmission::acquire(max_thread_count, min_thread_count, reserved_px_thread_count_);
+  LOG_WARN("my_debug_info --dop", K(sqc_init_args_->sqc_.get_dfo_id()), K(max_thread_count), K(min_thread_count), K(reserved_px_thread_count_));
   reserved_px_thread_count_ = reserved_px_thread_count_ < min_thread_count ? 0 : reserved_px_thread_count_;
   if (OB_FAIL(notifier_->set_expect_worker_count(reserved_px_thread_count_))) {
     LOG_WARN("failed to set expect worker count", K(ret), K(reserved_px_thread_count_));
@@ -400,6 +401,8 @@ int ObPxSqcHandler::thread_count_auto_scaling(int64_t &reserved_px_thread_count)
   } else if (OB_ISNULL(sub_coord_)) {
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("subcoord is null", K(ret));
+  } else if (PHY_PX_LOCAL_TRANSMIT == sqc_init_args_->op_spec_root_->get_type()) { 
+    /*do nothing*/
   } else {
     ObGranulePump &pump = sub_coord_->get_sqc_ctx().gi_pump_;
     if (OB_FAIL(pump.get_first_tsc_range_cnt(range_cnt))) {

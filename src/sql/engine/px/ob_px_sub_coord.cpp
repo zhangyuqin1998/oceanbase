@@ -514,6 +514,7 @@ int ObPxSubCoord::create_tasks(ObPxRpcInitSqcArgs &sqc_arg, ObSqcCtx &sqc_ctx, b
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("NULL ptr session", K(ret));
   }
+  LOG_WARN("my_debug_info --dop", K(sqc.get_dfo_id()), K(sqc.get_task_count()));
   for (int64_t i = 0; OB_SUCC(ret) && i < sqc.get_task_count(); ++i) {
     ObPxTask task;
     const ObAddr &sqc_exec_addr = sqc.get_exec_addr();
@@ -563,6 +564,7 @@ int ObPxSubCoord::dispatch_tasks(ObPxRpcInitSqcArgs &sqc_arg, ObSqcCtx &sqc_ctx,
       sqc_arg.sqc_handler_->inc_ref_count();
       ret = dispatch_task_to_thread_pool(sqc_arg, sqc_ctx, sqc, i);
       if (OB_SUCC(ret)) {
+        LOG_WARN("my_debug_info --dop dispatch_task_to_thread_pool succeed", K(sqc.get_dfo_id()));
         ++dispatch_worker_count;
       } else {
         sqc_arg.sqc_handler_->dec_ref_count();
