@@ -5448,8 +5448,6 @@ int ObLogicalOperator::alloc_op_pre(AllocOpContext& ctx)
       OB_ISNULL(query_ctx = my_plan_->get_stmt()->get_query_ctx())) {
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("stmt is NULL", K(ret));
-  } else if (query_ctx->get_global_hint().alloc_op_hints_.empty()){
-    /*no ops will be allocated, skip*/
   } else {
     if (!ctx.gen_temp_op_id_) {
       OZ (gen_temp_op_id(ctx));
@@ -5494,27 +5492,33 @@ int ObLogicalOperator::alloc_op_pre(AllocOpContext& ctx)
 int ObLogicalOperator::alloc_op_post(AllocOpContext& ctx)
 {
   int ret = OB_SUCCESS;
+  if (my_plan_->get_optimizer_context().get_root_stmt()->is_explain_stmt()) {
+    return ret;
+  }
   ret = ctx.disabled_op_set_.exist_refactored(op_id_);
   if (OB_HASH_EXIST == ret) {
     /*skip*/
     ret = OB_SUCCESS;
   } else if (OB_HASH_NOT_EXIST == ret){
     ret = OB_SUCCESS;
-    ObQueryCtx *query_ctx = my_plan_->get_stmt()->get_query_ctx(); // has already checked in alloc_op_pre
-    const ObIArray<ObAllocOpHint> &alloc_op_hints = query_ctx->get_global_hint().alloc_op_hints_;
-    for (int64_t i = 0; OB_SUCC(ret) && i < alloc_op_hints.count(); ++i) {
-      const ObAllocOpHint &alloc_op_hint = alloc_op_hints.at(i);
-      if (ObAllocOpHint::OB_ALL == alloc_op_hint.alloc_level_
-          && OB_FAIL(alloc_op_at_all_level(ctx, alloc_op_hint.op_type_))) {
-        LOG_WARN("fail to alloc op at all level", K(ret));
-      } else if (ObAllocOpHint::OB_DFO == alloc_op_hint.alloc_level_
-                 && OB_FAIL(alloc_op_at_dfo_level(ctx, alloc_op_hint.op_type_))) {
-        LOG_WARN("fail to alloc op at dfo level", K(ret));
-      } else if (ObAllocOpHint::OB_ENUMERATE == alloc_op_hint.alloc_level_
-                 && OB_FAIL(alloc_op_at_enumerate_level(ctx, alloc_op_hint))) {
-        LOG_WARN("fail to alloc op at enumerate level", K(ret));
-      } else { /*do nothing*/ }
+    if (OB_FAIL(alloc_op_at_all_level(ctx, ObAllocOpHint::OB_MATERIAL))) {
+      LOG_WARN("fail to alloc op at all level", K(ret));
     }
+    // ObQueryCtx *query_ctx = my_plan_->get_stmt()->get_query_ctx(); // has already checked in alloc_op_pre
+    // const ObIArray<ObAllocOpHint> &alloc_op_hints = query_ctx->get_global_hint().alloc_op_hints_;
+    // for (int64_t i = 0; OB_SUCC(ret) && i < alloc_op_hints.count(); ++i) {
+    //   const ObAllocOpHint &alloc_op_hint = alloc_op_hints.at(i);
+    //   if (ObAllocOpHint::OB_ALL == alloc_op_hint.alloc_level_
+    //       && OB_FAIL(alloc_op_at_all_level(ctx, alloc_op_hint.op_type_))) {
+    //     LOG_WARN("fail to alloc op at all level", K(ret));
+    //   } else if (ObAllocOpHint::OB_DFO == alloc_op_hint.alloc_level_
+    //              && OB_FAIL(alloc_op_at_dfo_level(ctx, alloc_op_hint.op_type_))) {
+    //     LOG_WARN("fail to alloc op at dfo level", K(ret));
+    //   } else if (ObAllocOpHint::OB_ENUMERATE == alloc_op_hint.alloc_level_
+    //              && OB_FAIL(alloc_op_at_enumerate_level(ctx, alloc_op_hint))) {
+    //     LOG_WARN("fail to alloc op at enumerate level", K(ret));
+    //   } else { /*do nothing*/ }
+    // }
   } else {
     LOG_WARN("exist_refactored fail", K(ret));
   }
