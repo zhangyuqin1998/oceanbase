@@ -58,27 +58,6 @@ int ObPhyPlanHint::deep_copy(const ObPhyPlanHint &other, ObIAllocator &allocator
   return ret;
 }
 
-int ObGlobalHint::merge_monitor_hints(const ObIArray<ObMonitorHint> &monitoring_ids)
-{
-  int ret = OB_SUCCESS;
-  bool find = false;
-  for (int64_t i = 0; OB_SUCC(ret) && i < monitoring_ids.count(); ++i) {
-    find = false;
-    for (int64_t j = 0; j < monitoring_ids_.count(); ++j) {
-      if (monitoring_ids.at(i).id_ == monitoring_ids_.at(j).id_) {
-        monitoring_ids_.at(j).flags_ |= monitoring_ids.at(i).flags_;
-        find = true;
-      }
-    }
-    if (!find) {
-      if (OB_FAIL(monitoring_ids_.push_back(monitoring_ids.at(i)))) {
-        LOG_WARN("Failed to push back tracing", K(ret));
-      }
-    }
-  }
-  return ret;
-}
-
 int ObGlobalHint::merge_dop_hint(uint64_t dfo, uint64_t dop)
 {
   int ret = OB_SUCCESS;
@@ -110,6 +89,38 @@ int ObGlobalHint::merge_dop_hint(const ObIArray<ObDopHint> &dop_hints)
   for (int64_t i = 0; OB_SUCC(ret) && i < dop_hints.count(); ++i) {
     if (OB_FAIL(merge_dop_hint(dop_hints.at(i).dfo_, dop_hints.at(i).dop_))) {
       LOG_WARN("failed to add dop hint", K(dops_));
+    }
+  }
+  return ret;
+}
+
+int ObGlobalHint::merge_alloc_op_hints(const ObIArray<ObAllocOpHint> &alloc_op_hints)
+{ 
+  int ret = OB_SUCCESS;
+  bool find = false;
+  for (int64_t i = 0; OB_SUCC(ret) && i < alloc_op_hints.count(); ++i) {
+    find = false;
+    for (int64_t j = 0; j < alloc_op_hints_.count(); ++j) {
+      if (alloc_op_hints.at(i).tgt_id_ == alloc_op_hints_.at(j).tgt_id_
+          && alloc_op_hints.at(i).is_monitor()
+          && alloc_op_hints_.at(j).is_monitor()) {
+        if (alloc_op_hints_.at(j).op_type_ != alloc_op_hints.at(i).op_type_) {
+          // After merging, per op will only have one monitor type hint.
+          // If more than one monitor hints are found on one node, 
+          // they will be merged into one `ObAllocOpHint`. 
+          // e.g. 
+          // two hints has different monitor type, it means one is `tracing`, the other one
+          // is `stat`, so we have to use `OB_MONITOR_TRACING_AND_STAT`.
+          alloc_op_hints_.at(j).op_type_ = ObAllocOpHint::OB_MONITOR_TRACING_AND_STAT;
+        }
+        find = true;
+        LOG_DEBUG("alloc op already exists", K(alloc_op_hints_.at(j)), K(alloc_op_hints.at(i)));
+      }
+    }
+    if (!find) {
+      if (OB_FAIL(alloc_op_hints_.push_back(alloc_op_hints.at(i)))) {
+        LOG_WARN("Failed to push back tracing", K(ret));
+      }
     }
   }
   return ret;
@@ -291,7 +302,7 @@ bool ObGlobalHint::has_hint_exclude_concurrent() const
          || false != monitor_
          || ObPDMLOption::NOT_SPECIFIED != pdml_option_
          || ObParamOption::NOT_SPECIFIED != param_option_
-         || !monitoring_ids_.empty()
+         || !alloc_op_hints_.empty()
          || !dops_.empty()
          || !opt_params_.empty()
          || !ob_ddl_schema_versions_.empty()
@@ -317,7 +328,6 @@ void ObGlobalHint::reset()
   monitor_ = false;
   pdml_option_ = ObPDMLOption::NOT_SPECIFIED;
   param_option_ = ObParamOption::NOT_SPECIFIED;
-  monitoring_ids_.reuse();
   dops_.reuse();
   opt_features_version_ = UNSET_OPT_FEATURES_VERSION;
   disable_transform_ = false;
@@ -329,6 +339,7 @@ void ObGlobalHint::reset()
   has_dbms_stats_hint_ = false;
   flashback_read_tx_uncommitted_ = false;
   dynamic_sampling_ = ObGlobalHint::UNSET_DYNAMIC_SAMPLING;
+  alloc_op_hints_.reuse();
 }
 
 int ObGlobalHint::merge_global_hint(const ObGlobalHint &other)
@@ -357,8 +368,8 @@ int ObGlobalHint::merge_global_hint(const ObGlobalHint &other)
   has_dbms_stats_hint_ |= other.has_dbms_stats_hint_;
   flashback_read_tx_uncommitted_ |= other.flashback_read_tx_uncommitted_;
   merge_dynamic_sampling_hint(other.dynamic_sampling_);
-  if (OB_FAIL(merge_monitor_hints(other.monitoring_ids_))) {
-    LOG_WARN("failed to merge monitor hints", K(ret));
+  if (OB_FAIL(merge_alloc_op_hints(other.alloc_op_hints_))) {
+    LOG_WARN("failed to merge alloc op hints", K(ret));
   } else if (OB_FAIL(merge_dop_hint(other.dops_))) {
     LOG_WARN("failed to merge dop hints", K(ret));
   } else if (OB_FAIL(opt_params_.merge_opt_param_hint(other.opt_params_))) {
@@ -403,10 +414,10 @@ int ObGlobalHint::print_global_hint(PlanText &plan_text) const
     }
   }
 
-  // TRACING & STAT
-  if (OB_SUCC(ret) && !monitoring_ids_.empty()) {
-    if (OB_FAIL(print_monitoring_hints(plan_text))) {
-      LOG_WARN("failed to print monitoring hints", K(ret));
+  // TRACING & STAT & BLOCKING
+  if (OB_SUCC(ret) && !alloc_op_hints_.empty()) {
+    if (OB_FAIL(print_alloc_op_hints(plan_text))) {
+      LOG_WARN("failed to print alloc op hints", K(ret));
     }
   }
 
@@ -567,23 +578,45 @@ int ObOptimizerStatisticsGatheringHint::print_osg_hint(PlanText &plan_text) cons
   return ret;
 }
 
-int ObGlobalHint::print_monitoring_hints(PlanText &plan_text) const
+int ObGlobalHint::print_alloc_op_hints(PlanText &plan_text) const
 {
   int ret = OB_SUCCESS;
-  if (!monitoring_ids_.empty()) {
+  if (!alloc_op_hints_.empty()) {
     char *buf = plan_text.buf_;
     int64_t &buf_len = plan_text.buf_len_;
     int64_t &pos = plan_text.pos_;
     const char* outline_indent = ObQueryHint::get_outline_indent(plan_text.is_oneline_);
     ObSEArray<uint64_t, 4> tracing_ids;
     ObSEArray<uint64_t, 4> stat_ids;
-    for (int64_t i = 0; OB_SUCC(ret) && i < monitoring_ids_.count(); ++i) {
-      if ((monitoring_ids_.at(i).flags_ & ObMonitorHint::OB_MONITOR_TRACING)
-          && OB_FAIL(tracing_ids.push_back(monitoring_ids_.at(i).id_))) {
+    ObSEArray<uint64_t, 4> blocking_ids;
+    for (int64_t i = 0; OB_SUCC(ret) && i < alloc_op_hints_.count(); ++i) {
+      if ((ObAllocOpHint::OB_MONITOR_TRACING == alloc_op_hints_.at(i).op_type_
+          || ObAllocOpHint::OB_MONITOR_TRACING_AND_STAT == alloc_op_hints_.at(i).op_type_)
+          && ObAllocOpHint::OB_ENUMERATE == alloc_op_hints_.at(i).alloc_level_
+          && OB_SUCC(ret)
+          && OB_FAIL(tracing_ids.push_back(alloc_op_hints_.at(i).tgt_id_))) {
         LOG_WARN("failed to push back", K(ret));
-      } else if ((monitoring_ids_.at(i).flags_ & ObMonitorHint::OB_MONITOR_STAT)
-                 && OB_FAIL(stat_ids.push_back(monitoring_ids_.at(i).id_))) {
+      } else if ((ObAllocOpHint::OB_MONITOR_STAT == alloc_op_hints_.at(i).op_type_
+                 || ObAllocOpHint::OB_MONITOR_TRACING_AND_STAT == alloc_op_hints_.at(i).op_type_)
+                 && ObAllocOpHint::OB_ENUMERATE == alloc_op_hints_.at(i).alloc_level_
+                 && OB_SUCC(ret)
+                 && OB_FAIL(stat_ids.push_back(alloc_op_hints_.at(i).tgt_id_))) {
         LOG_WARN("failed to push back", K(ret));
+      } else if (ObAllocOpHint::OB_MATERIAL == alloc_op_hints_.at(i).op_type_
+                 && ObAllocOpHint::OB_ENUMERATE == alloc_op_hints_.at(i).alloc_level_
+                 && OB_SUCC(ret)
+                 && OB_FAIL(blocking_ids.push_back(alloc_op_hints_.at(i).tgt_id_))) {
+        LOG_WARN("failed to push back", K(ret));
+      } else if (ObAllocOpHint::OB_MATERIAL == alloc_op_hints_.at(i).op_type_
+                 && ObAllocOpHint::OB_ALL == alloc_op_hints_.at(i).alloc_level_
+                 && OB_SUCC(ret)
+                 && OB_FAIL(BUF_PRINTF("%sBLOCKING('all')", outline_indent))) {
+        LOG_WARN("failed to print blocking hint", K(ret));
+      } else if (ObAllocOpHint::OB_MATERIAL == alloc_op_hints_.at(i).op_type_
+                 && ObAllocOpHint::OB_DFO == alloc_op_hints_.at(i).alloc_level_
+                 && OB_SUCC(ret)
+                 && OB_FAIL(BUF_PRINTF("%sBLOCKING('dfo')", outline_indent))) {
+        LOG_WARN("failed to print blocking hint", K(ret));
       }
     }
     if (OB_SUCC(ret) && !tracing_ids.empty()) {
@@ -595,7 +628,7 @@ int ObGlobalHint::print_monitoring_hints(PlanText &plan_text) const
           LOG_WARN("failed to print tracing hint", K(ret));
         }
       }
-      if (OB_FAIL(BUF_PRINTF(")"))) {
+      if (OB_SUCC(ret) && OB_FAIL(BUF_PRINTF(")"))) {
         LOG_WARN("failed to print tracing hint", K(ret));
       }
     }
@@ -608,8 +641,21 @@ int ObGlobalHint::print_monitoring_hints(PlanText &plan_text) const
           LOG_WARN("failed to print tracing hint", K(ret));
         }
       }
-      if (OB_FAIL(BUF_PRINTF(")"))) {
+      if (OB_SUCC(ret) && OB_FAIL(BUF_PRINTF(")"))) {
         LOG_WARN("failed to print tracing hint", K(ret));
+      }
+    }
+    if (OB_SUCC(ret) && !blocking_ids.empty()) {
+      if (OB_FAIL(BUF_PRINTF("%sBLOCKING(%lu", outline_indent, blocking_ids.at(0)))) {
+        LOG_WARN("failed to print blocking hint", K(ret));
+      }
+      for (int64_t i = 1; OB_SUCC(ret) && i < blocking_ids.count(); ++i) {
+        if (OB_FAIL(BUF_PRINTF(" %lu", blocking_ids.at(i)))) {
+          LOG_WARN("failed to print blocking hint", K(ret));
+        }
+      }
+      if (OB_SUCC(ret) && OB_FAIL(BUF_PRINTF(")"))) {
+        LOG_WARN("failed to print blocking hint", K(ret));
       }
     }
   }
@@ -2636,6 +2682,20 @@ int ObTableDynamicSamplingHint::print_hint_desc(PlanText &plan_text) const
              OB_FAIL(BUF_PRINTF(" %ld", sample_block_cnt_))) {
     LOG_WARN("fail to print dynamic sampling sample percent", K(ret));
   }
+  return ret;
+}
+
+void ObAllocOpHint::reset() {
+  op_type_ = INVALID_TYPE;
+  alloc_level_ = INVALID_LEVEL;
+  tgt_id_ = 0;
+}
+
+int ObAllocOpHint::assign(const ObAllocOpHint& other) {
+  int ret = OB_SUCCESS;
+  op_type_ = other.op_type_;
+  alloc_level_ = other.alloc_level_;
+  tgt_id_ = other.tgt_id_;
   return ret;
 }
 

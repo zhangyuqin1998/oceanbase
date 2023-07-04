@@ -39,19 +39,6 @@ enum ObPlanCachePolicy
   OB_USE_PLAN_CACHE_DEFAULT,//use plan cache
 };
 
-struct ObMonitorHint
-{
-  ObMonitorHint(): id_(0), flags_(0) {};
-  ~ObMonitorHint() = default;
-
-  static const int8_t OB_MONITOR_TRACING  = 0x1 << 1;
-  static const int8_t OB_MONITOR_STAT     = 0x1 << 2;
-
-  uint64_t id_;
-  uint64_t flags_;
-  TO_STRING_KV(K_(id), K_(flags));
-};
-
 struct ObDopHint
 {
   ObDopHint(): dfo_(0), dop_(0) {};
@@ -74,6 +61,44 @@ struct ObOptimizerStatisticsGatheringHint
   uint64_t flags_;
   TO_STRING_KV(K_(flags));
   int print_osg_hint(PlanText &plan_text) const;
+};
+
+struct ObAllocOpHint
+{
+  enum OpType
+  {
+    INVALID_TYPE = 0,
+    OB_MATERIAL,
+    OB_MONITOR_TRACING = 0x1 << 1,
+    OB_MONITOR_STAT = 0x1 << 2,
+    OB_MONITOR_TRACING_AND_STAT = (0x1 << 1) | (0x1 << 2)
+  };
+  enum AllocLevel
+  {
+    INVALID_LEVEL = 0,
+    OB_ALL,
+    OB_DFO,
+    OB_ENUMERATE
+  };
+
+  ObAllocOpHint() : op_type_(INVALID_TYPE), alloc_level_(INVALID_LEVEL), tgt_id_(0) {}
+  ~ ObAllocOpHint() = default;
+  void reset();
+  int assign(const ObAllocOpHint& other);
+  inline bool is_monitor() const
+  { 
+    return op_type_ <= OB_MONITOR_TRACING_AND_STAT && op_type_ >= OB_MONITOR_TRACING;
+  }
+  inline bool is_monitor()
+  { 
+    return op_type_ <= OB_MONITOR_TRACING_AND_STAT && op_type_ >= OB_MONITOR_TRACING;
+  }
+
+  OpType op_type_;
+  AllocLevel alloc_level_;
+  int64_t tgt_id_;  // Target op id in original plan tree. Material or monitor op will be inserted above target op.
+
+  TO_STRING_KV(K_(op_type), K_(alloc_level), K_(tgt_id));
 };
 
 struct ObOptParamHint
@@ -135,9 +160,9 @@ struct ObGlobalHint {
   static const int64_t UNSET_DYNAMIC_SAMPLING = -1;
 
   int merge_global_hint(const ObGlobalHint &other);
-  int merge_monitor_hints(const ObIArray<ObMonitorHint> &monitoring_ids);
   int merge_dop_hint(uint64_t dfo, uint64_t dop);
   int merge_dop_hint(const ObIArray<ObDopHint> &dop_hints);
+  int merge_alloc_op_hints(const ObIArray<ObAllocOpHint> &alloc_op_hints);
   void merge_query_timeout_hint(int64_t hint_time);
   void reset_query_timeout_hint() { query_timeout_ = -1; }
   void merge_dblink_info_hint(int64_t tx_id, int64_t tm_sessid);
@@ -156,7 +181,7 @@ struct ObGlobalHint {
 
   bool has_hint_exclude_concurrent() const;
   int print_global_hint(PlanText &plan_text) const;
-  int print_monitoring_hints(PlanText &plan_text) const;
+  int print_alloc_op_hints(PlanText &plan_text) const;
 
   ObPDMLOption get_pdml_option() const { return pdml_option_; }
   ObParamOption get_param_option() const { return param_option_; }
@@ -225,7 +250,6 @@ struct ObGlobalHint {
                K_(monitor),
                K_(pdml_option),
                K_(param_option),
-               K_(monitoring_ids),
                K_(dops),
                K_(opt_features_version),
                K_(disable_transform),
@@ -235,7 +259,8 @@ struct ObGlobalHint {
                K_(ob_ddl_schema_versions),
                K_(osg_hint),
                K_(has_dbms_stats_hint),
-               K_(dynamic_sampling));
+               K_(dynamic_sampling),
+               K_(alloc_op_hints));
 
   int64_t frozen_version_;
   int64_t topk_precision_;
@@ -254,7 +279,6 @@ struct ObGlobalHint {
   bool monitor_;
   ObPDMLOption pdml_option_;
   ObParamOption param_option_;
-  common::ObSArray<ObMonitorHint> monitoring_ids_;
   common::ObSArray<ObDopHint> dops_;
   uint64_t opt_features_version_;
   bool disable_transform_;
@@ -266,6 +290,7 @@ struct ObGlobalHint {
   bool has_dbms_stats_hint_;
   bool flashback_read_tx_uncommitted_;
   int64_t dynamic_sampling_;
+  common::ObSArray<ObAllocOpHint> alloc_op_hints_;
 };
 
 // used in physical plan
