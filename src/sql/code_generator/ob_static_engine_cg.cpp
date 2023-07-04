@@ -3254,11 +3254,25 @@ int ObStaticEngineCG::generate_spec(ObLogTempTableInsert &op, ObTempTableInsertO
   if (OB_ISNULL(parent = op.get_parent())) {
     ret = OB_ERR_UNEXPECTED;
     LOG_WARN("unexpected null", K(ret));
-  } else if (log_op_def::LOG_EXCHANGE == parent->get_type()) {
-    is_distributed = true;
+  } else {
+    while (OB_SUCC(ret) &&
+           (log_op_def::LOG_MONITORING_DUMP == parent->get_type() ||
+           log_op_def::LOG_MATERIAL == parent->get_type())) {
+      if (OB_ISNULL(parent = parent->get_parent())) {
+        ret = OB_ERR_UNEXPECTED;
+        LOG_WARN("unexpected null", K(ret));
+      }
+    }
+    if (OB_SUCC(ret) &&
+        OB_NOT_NULL(parent) &&
+        log_op_def::LOG_EXCHANGE == parent->get_type()) {
+      is_distributed = true;
+    }
   }
-  spec.set_distributed(is_distributed);
-  spec.set_temp_table_id(op.get_temp_table_id());
+  if (OB_SUCC(ret)) {
+    spec.set_distributed(is_distributed);
+    spec.set_temp_table_id(op.get_temp_table_id());
+  }
   return ret;
 }
 
