@@ -4458,8 +4458,15 @@ int ObLogicalOperator::allocate_material_node_above()
       }
     }
     if (OB_SUCC(ret) && OB_UNLIKELY(!found_child)) {
+      /*
       ret = OB_ERR_UNEXPECTED;
-      LOG_WARN("can not find correct child", K(ret));
+      LOG_WARN("can not find correct child", K(ret), K(op_id_), K(get_op_name(type_)));
+      LOG_WARN("", K(get_parent()->get_op_id()), K(get_op_name(get_parent()->get_type())));
+      for (int64_t i = 0;  i < get_parent()->get_num_of_child(); ++i) {
+        LOG_WARN("", K(get_parent()->get_child(i)->get_op_id()), K(get_op_name(get_parent()->get_child(i)->get_type())));
+      }
+      */
+      /*do nothing*/
     }
   } else if (is_plan_root()) {
     // If current node is the root node, allocate a material node as new root
