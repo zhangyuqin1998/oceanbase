@@ -135,6 +135,7 @@ public:
 
   virtual int clear_response_block() = 0;
   virtual int wait_response() = 0;
+  virtual int wait_async_response() = 0;
   void done();
   bool is_done() const;
 

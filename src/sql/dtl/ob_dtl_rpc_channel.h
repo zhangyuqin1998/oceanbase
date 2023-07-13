@@ -65,6 +65,25 @@ class ObDtlRpcChannel
     int64_t timeout_ts_;
   };
 
+  class SendAsyncMsgCB : public obrpc::ObDtlRpcProxy::AsyncCB<obrpc::OB_DTL_SEND>
+  {
+  public:
+    explicit SendAsyncMsgCB(SendAsyncMsgResponse &async_response, const common::ObCurTraceId::TraceId trace_id, const int64_t timeout_ts)
+        : async_response_(async_response), timeout_ts_(timeout_ts)
+    {
+      trace_id_.set(trace_id);
+    }
+    virtual int process() override;
+    virtual void on_invalid() override;
+    virtual void on_timeout() override;
+    virtual rpc::frame::ObReqTransport::AsyncCB *clone(const rpc::frame::SPAlloc &alloc) const override;
+    virtual void set_args(const AsyncCB::Request &arg) override { UNUSED(arg); }
+  private:
+    SendAsyncMsgResponse &async_response_;
+    common::ObCurTraceId::TraceId trace_id_;
+    int64_t timeout_ts_;
+  };
+
   class SendBCMsgCB : public obrpc::ObDtlRpcProxy::AsyncCB<obrpc::OB_DTL_BC_SEND>
   {
   public:
@@ -91,6 +110,8 @@ public:
      const uint64_t id, const common::ObAddr &peer);
   explicit ObDtlRpcChannel(const uint64_t tenant_id, const uint64_t id, const common::ObAddr &peer,
                            const int64_t hash_val);
+  explicit ObDtlRpcChannel(const uint64_t tenant_id, const uint64_t id, const common::ObAddr &peer,
+                           const int64_t hash_val, const bool keep_order);
   virtual ~ObDtlRpcChannel();
 
   virtual DtlChannelType get_channel_type() { return DtlChannelType::RPC_CHANNEL; }
@@ -100,10 +121,11 @@ public:
 
   virtual int feedup(ObDtlLinkedBuffer *&buffer) override;
   virtual int send_message(ObDtlLinkedBuffer *&buf);
-
+  virtual int wait_async_response() override;
   bool recv_sqc_fin_res() { return recv_sqc_fin_res_; }
 private:
   bool recv_sqc_fin_res_;
+  bool keep_order_;
 };
 
 }  // dtl

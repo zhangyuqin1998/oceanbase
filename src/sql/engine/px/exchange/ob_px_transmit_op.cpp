@@ -104,7 +104,8 @@ int ObPxTransmitOpInput::get_data_ch(ObPxTaskChSet &task_ch_set, int64_t timeout
 OB_SERIALIZE_MEMBER((ObPxTransmitSpec, ObTransmitSpec),
     sample_type_, need_null_aware_shuffle_, tablet_id_expr_,
     random_expr_, sampling_saving_row_, repartition_table_id_,
-    wf_hybrid_aggr_status_expr_, wf_hybrid_pby_exprs_cnt_array_);
+    wf_hybrid_aggr_status_expr_, wf_hybrid_pby_exprs_cnt_array_,
+    keep_order_);
 
 ObPxTransmitSpec::ObPxTransmitSpec(ObIAllocator &alloc, const ObPhyOperatorType type)
     : ObTransmitSpec(alloc, type),
@@ -115,7 +116,8 @@ ObPxTransmitSpec::ObPxTransmitSpec(ObIAllocator &alloc, const ObPhyOperatorType 
       sampling_saving_row_(alloc),
       repartition_table_id_(0),
       wf_hybrid_aggr_status_expr_(NULL),
-      wf_hybrid_pby_exprs_cnt_array_(alloc)
+      wf_hybrid_pby_exprs_cnt_array_(alloc),
+      keep_order_(false)
 {
 }
 
@@ -452,6 +454,12 @@ int ObPxTransmitOp::inner_close()
     LOG_WARN("failed to destroy ch agent", K(ret));
   }
   ObDtlBasicChannel *ch = nullptr;
+  for (int i = 0; OB_SUCC(ret) && i < task_channels_.count(); ++i) {
+    if (OB_FAIL(task_channels_.at(i)->wait_async_response())) {
+      LOG_WARN("fail to wait async response", K(ret));
+    }
+  }
+  ch = nullptr;
   int64_t recv_cnt = 0;
   for (int i = 0; i < task_channels_.count(); ++i) {
     ch = static_cast<ObDtlBasicChannel *>(task_channels_.at(i));
@@ -1004,7 +1012,7 @@ int ObPxTransmitOp::link_ch_sets(ObPxTaskChSet &ch_set,
         } else if (nullptr != dfc && ci.type_ == DTL_CT_LOCAL) {
           ch = new((char*)buf + offset) ObDtlLocalChannel(ci.tenant_id_, ci.chid_, ci.peer_, hash_val);
         } else {
-          ch = new((char*)buf + offset) ObDtlRpcChannel(ci.tenant_id_, ci.chid_, ci.peer_, hash_val);
+          ch = new((char*)buf + offset) ObDtlRpcChannel(ci.tenant_id_, ci.chid_, ci.peer_, hash_val, MY_SPEC.keep_order_);
         }
         if (OB_FAIL(ret)) {
         } else if (nullptr == ch) {

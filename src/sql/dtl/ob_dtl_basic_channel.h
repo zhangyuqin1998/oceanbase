@@ -323,6 +323,36 @@ private:
   uint64_t ch_id_;
 };
 
+class SendAsyncMsgResponse {
+public:
+  explicit SendAsyncMsgResponse() : on_flight_msg_cnt_(0), cond_(),
+      in_process_(false), is_block_(false), inited_(false), ret_(OB_SUCCESS), ch_id_(0) {}
+  ~SendAsyncMsgResponse() = default;
+
+  void set_id(uint64_t id) { ch_id_ = id; }
+  uint64_t get_id() { return ch_id_; }
+  void inc_flight_cnt() { on_flight_msg_cnt_++; }
+  void dec_flight_cnt() { on_flight_msg_cnt_--; }
+  int init();
+  int wait();
+  int start();
+  void on_start_fail();
+  int on_finish(const bool is_block, const int return_code);
+  bool is_block() { return is_block_; }
+  void reset_block() { is_block_ = false; }
+  bool is_in_process() const { return in_process_; }
+
+private:
+  DISALLOW_COPY_AND_ASSIGN(SendAsyncMsgResponse);
+  int64_t on_flight_msg_cnt_;
+  common::ObThreadCond cond_;
+  bool in_process_;
+  bool is_block_;
+  bool inited_;
+  int ret_;
+  uint64_t ch_id_;
+};
+
 // Rpc channel is "rpc version" of channel. As the name explained,
 // this kind of channel will do exchange between two tasks by using
 // rpc calls.
@@ -384,6 +414,7 @@ public:
   bool belong_to_transmit_data();
   virtual int clear_response_block();
   virtual int wait_response();
+  virtual int wait_async_response() override { return OB_SUCCESS; };
   void inc_msg_seq_no() { ++seq_no_; }
   int64_t get_msg_seq_no() { return seq_no_; }
   void inc_send_buffer_cnt() { ++send_buffer_cnt_; }
@@ -448,6 +479,7 @@ protected:
   common::ObSpLinkQueue free_list_;
 
   SendMsgResponse msg_response_;
+  SendAsyncMsgResponse msg_async_response_;
   ObDtlLinkedBuffer *send_failed_buffer_;
   bool alloc_new_buf_;
 

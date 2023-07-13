@@ -7856,6 +7856,10 @@ int ObLogPlan::allocate_exchange_as_top(ObLogicalOperator *&top,
     } else if (OB_FAIL(consumer->compute_property())) {
       LOG_WARN("failed to compute property", K(ret));
     } else {
+      LOG_WARN("my_info", K(consumer->is_merge_sort()), K(consumer->is_sort_local_order()), K(consumer->is_task_order()));
+      if (consumer->is_merge_sort() || consumer->is_sort_local_order() || consumer->is_task_order()) {
+        producer->set_keep_order();
+      }
       top = consumer;
     }
   }

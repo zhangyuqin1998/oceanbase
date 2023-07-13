@@ -59,7 +59,8 @@ public:
       need_null_aware_shuffle_(false),
       is_old_unblock_mode_(true),
       sample_type_(NOT_INIT_SAMPLE_TYPE),
-      in_server_cnt_(0)
+      in_server_cnt_(0),
+      is_keep_order_(false)
   {
     repartition_table_id_ = 0;
   }
@@ -86,6 +87,8 @@ public:
   inline bool is_merge_sort() const { return is_merge_sort_; }
   inline bool is_sort_local_order() const { return is_sort_local_order_; }
   inline bool is_block_op() const { return is_sort_local_order_; }
+  inline bool is_keep_order() const { return is_keep_order_; }
+  inline void set_keep_order() { is_keep_order_ = true; }
   virtual int get_explain_name_internal(char *buf,
                                         const int64_t buf_len,
                                         int64_t &pos);
@@ -262,6 +265,7 @@ private:
   ObPxSampleType sample_type_;
   // -end pkey range/range
   int64_t in_server_cnt_; // for producer, need use exchange in server cnt to compute cost
+  bool is_keep_order_;
   DISALLOW_COPY_AND_ASSIGN(ObLogExchange);
 };
 } // end of namespace sql

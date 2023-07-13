@@ -155,6 +155,100 @@ int SendMsgResponse::wait()
   return OB_SUCCESS == ret ? ret_ : ret;
 }
 
+
+int SendAsyncMsgResponse::init()
+{
+  int ret = OB_SUCCESS;
+  if (inited_) {
+    ret = OB_INIT_TWICE;
+    LOG_WARN("init twice", K(ch_id_));
+  } else if (OB_FAIL(cond_.init(common::ObWaitEventIds::DEFAULT_COND_WAIT))) {
+    LOG_WARN("thread condition init failed", K(ret), K(ch_id_));
+  } else {
+    inited_ = true;
+  }
+  return ret;
+}
+
+// wait 时会等待所有 rpc 回包, 如果其中有 fail 的, 返回错误码
+int SendAsyncMsgResponse::wait()
+{ 
+  int ret = OB_SUCCESS;
+  if (!inited_) {
+    ret = OB_NOT_INIT;
+    LOG_WARN("not init", K(ret), K(ch_id_));
+  } else if (OB_SUCCESS != ret_) {
+    LOG_WARN("rpc fail", K(ret), K(ch_id_));
+  } else {
+    ObThreadCondGuard guard(cond_);
+    int64_t count_v = 0;
+    int64_t start_t = 0;
+    int64_t end_t = 0;
+    int64_t interval = 60000; // ms
+    LOG_WARN("my_info", K(on_flight_msg_cnt_));
+    while (0 != on_flight_msg_cnt_ && OB_SUCC(ret) && OB_SUCC(ret_)) {
+      cond_.wait(1);
+      ++count_v;
+      // 60s
+      if (count_v > interval) {
+        if (0 == start_t) {
+          start_t = ObTimeUtility::current_time();
+        }
+        count_v = 0;
+      }
+      if (0 != start_t && 10 < count_v) {
+        end_t = ObTimeUtility::current_time();
+        if (end_t - interval * 1000  >= start_t) {
+          LOG_WARN("channel can't receive response", K(ch_id_));
+          start_t = end_t;
+        }
+        count_v = 0;
+      }
+    }
+    in_process_ = false;
+  }
+  return OB_SUCCESS == ret ? ret_ : ret;
+}
+int SendAsyncMsgResponse::start()
+{
+  int ret = OB_SUCCESS;
+  if (!inited_) {
+    ret = OB_NOT_INIT;
+    LOG_WARN("not init", K(ret), K(ch_id_));
+  } else {
+    ObThreadCondGuard guard(cond_);
+    in_process_ = true;
+    is_block_ = false;
+    inc_flight_cnt();
+    LOG_WARN("my_info--", K(on_flight_msg_cnt_));
+  }
+  return OB_SUCCESS == ret ? ret_ : ret;
+}
+void SendAsyncMsgResponse::on_start_fail()
+{
+  in_process_ = false;
+  is_block_ = false;
+  LOG_TRACE("dtl response fail", K(is_block_), KP(ch_id_));
+}
+int SendAsyncMsgResponse::on_finish(const bool is_block, const int return_code)
+{
+  int ret = OB_SUCCESS;
+  // ob_usleep(1000 * 100);
+  if (!inited_) {
+    ret = OB_NOT_INIT;
+    LOG_WARN("not init", K(ret), K(ch_id_));
+  } else {
+    ObThreadCondGuard guard(cond_);
+    ret_ = return_code;
+    is_block_ = is_block;
+    dec_flight_cnt();  // 工作线程需要在 close 时 wait, 避免 msg_async_response_ 被释放
+    LOG_WARN("my_info--", K(on_flight_msg_cnt_));
+    LOG_TRACE("dtl response finish", KP(this), K(is_block_), K(ret), K(ch_id_));
+    cond_.broadcast();
+  }
+  return ret;
+}
+
 ObDtlBasicChannel::ObDtlBasicChannel(
     const uint64_t tenant_id,
     const uint64_t id,
@@ -189,6 +283,7 @@ ObDtlBasicChannel::ObDtlBasicChannel(
   // dtl创建时候的server版本决定发送老的ser方式还是新的chunk row store方式
   use_crs_writer_ = true;
   msg_response_.set_id(id_);
+  msg_async_response_.set_id(id_);
 }
 
 ObDtlBasicChannel::ObDtlBasicChannel(
@@ -223,6 +318,7 @@ ObDtlBasicChannel::ObDtlBasicChannel(
   // dtl创建时候的server版本决定发送老的ser方式还是新的chunk row store方式
   use_crs_writer_ = true;
   msg_response_.set_id(id_);
+  msg_async_response_.set_id(id_);
 }
 
 ObDtlBasicChannel::~ObDtlBasicChannel()
@@ -236,6 +332,8 @@ int ObDtlBasicChannel::init()
   int ret = OB_SUCCESS;
   if (OB_FAIL(msg_response_.init())) {
     LOG_WARN("int message response failed", K(ret));
+  } else if (OB_FAIL(msg_async_response_.init())) {
+    LOG_WARN("int flight ctl failed", K(ret));
   } else {
     is_inited_ = true;
   }
@@ -784,9 +882,10 @@ int ObDtlBasicChannel::wait_unblocking_if_blocked()
     if (!msg_response_.is_init()) {
       ret = OB_NOT_INIT;
       LOG_WARN("not init", K(ret));
-    } else if (msg_response_.is_block()) {
+    } else if (msg_response_.is_block() || msg_async_response_.is_block()) {
       // receive response, then set block info for dfc
       msg_response_.reset_block();
+      msg_async_response_.reset_block();
       if (OB_ISNULL(dfc_)) {
         ret = OB_ERR_UNEXPECTED;
         LOG_WARN("channel loop is null", K(ret));
@@ -798,7 +897,7 @@ int ObDtlBasicChannel::wait_unblocking_if_blocked()
       }
     }
     if (OB_SUCC(ret)) {
-      LOG_TRACE("wait unblocking if blocked", K(msg_response_.is_block()), K(dfc_->is_block(this)), K(ret), KP(id_), KP(peer_id_),
+      LOG_TRACE("wait unblocking if blocked", K(msg_response_.is_block()), K(msg_async_response_.is_block()), K(dfc_->is_block(this)), K(ret), KP(id_), KP(peer_id_),
         K(peer_), K(ret));
       if (dfc_->is_block(this)) {
         if (OB_FAIL(wait_unblocking())) {
